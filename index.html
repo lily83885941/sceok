@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球多账户多行业资产综合管理系统 - REALTIME</title>
+    <title>全球多账户多行业资产综合管理系统 - MULTI-ANALYSIS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -25,7 +25,7 @@
             padding: 20px;
             line-height: 1.5;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; }
         header {
             display: flex;
             justify-content: space-between;
@@ -54,26 +54,28 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 20px;
-            position: relative;
+            margin-bottom: 20px;
         }
         .card-title {
             font-size: 14px;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 6px;
+            font-weight: 600;
         }
         .card-value { font-size: 28px; font-weight: bold; margin-bottom: 4px; }
         .pnl-up { color: #39d353; font-size: 14px; font-weight: 600; }
         .pnl-down { color: #f85149; font-size: 14px; font-weight: 600; }
         
+        /* 左右大对调：左侧1.2份放可视化，右侧2份放表格控制数据 */
         .main-layout {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1.2fr 2fr;
             gap: 25px;
         }
-        @media (max-width: 992px) {
+        @media (max-width: 1100px) {
             .main-layout { grid-template-columns: 1fr; }
         }
         
@@ -82,24 +84,23 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
-        .filter-group { display: flex; gap: 10px; }
+        .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
         select, input, button {
             background-color: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-color);
             padding: 6px 12px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             outline: none;
         }
         select:focus, input:focus { border-color: var(--primary); }
         button {
             cursor: pointer;
             font-weight: 500;
-            background-color: #21262d;
             transition: 0.2s;
         }
         button:hover { background-color: #30363d; border-color: #8b949e; }
@@ -114,24 +115,23 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #1f242c; font-weight: 600; font-size: 14px; color: var(--text-muted); }
+        th, td { padding: 12px 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        th { background-color: #1f242c; font-weight: 600; color: var(--text-muted); }
         tr:hover { background-color: #1f242c; }
         
         .badge {
             padding: 2px 8px;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
         }
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
         
-        /* 市场标签独立样式 */
         .market-badge {
             padding: 2px 6px;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             margin-left: 6px;
         }
@@ -139,51 +139,58 @@
         .mkt-hk { background-color: #cc0000; color: #fff; }
         .mkt-cn { background-color: #2ea44f; color: #fff; }
 
-        /* 快捷超链接专设排版 */
         .info-links-bar {
             margin-top: 5px;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
-            gap: 15px;
+            gap: 12px;
         }
         .action-btn-link {
             color: var(--primary);
             text-decoration: none;
-            font-weight: 500;
         }
-        .action-btn-link:hover {
-            text-decoration: underline;
-            color: #fff;
+        .action-btn-link:hover { text-decoration: underline; color: #fff; }
+
+        /* 图表专用精细排版 */
+        .chart-block {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 10px;
         }
+        .chart-wrapper { width: 140px; height: 140px; position: relative; }
+        .chart-legend-list {
+            list-style: none;
+            flex: 1;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px dashed #21262d;
+        }
+        .legend-label { display: flex; align-items: center; gap: 6px; }
+        .legend-color-box { width: 10px; height: 10px; border-radius: 2px; }
 
         /* 弹窗样式 */
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 1000;
+            background-color: rgba(0,0,0,0.7); z-index: 1000;
         }
         .modal-content {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            width: 90%; max-width: 500px;
-            margin: 10% auto;
-            border-radius: 8px;
-            padding: 25px;
+            background-color: var(--card-bg); border: 1px solid var(--border-color);
+            width: 90%; max-width: 500px; margin: 10% auto; border-radius: 8px; padding: 25px;
         }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; }
         .form-group input, .form-group select { width: 100%; padding: 8px 12px; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        
-        .chart-container { height: 260px; position: relative; margin-top: 15px; }
-        .sector-list { margin-top: 20px; list-style: none; }
-        .sector-item {
-            display: flex; justify-content: space-between; padding: 8px 0;
-            border-bottom: 1px dashed var(--border-color); font-size: 14px;
-        }
     </style>
 </head>
 <body>
@@ -191,10 +198,10 @@
 <div class="container">
     <header>
         <div>
-            <h1>PORTFOLIO</h1>
-            <p style="color: var(--text-muted); font-size: 14px;">全球多账户多行业资产全自动综合监控看板</p>
+            <h1>PORTFOLIO MATRIX</h1>
+            <p style="color: var(--text-muted); font-size: 13px;">全球多账户、多维资产配置自动化深度可视看板</p>
         </div>
-        <div class="status-badge" id="ws-status">⏳ 正在从 Google Sheet 同步资产矩阵...</div>
+        <div class="status-badge" id="ws-status">⏳ 正在从 Google Sheet 同步数据资产底层...</div>
     </header>
 
     <div class="matrix-grid">
@@ -216,22 +223,49 @@
     </div>
 
     <div class="main-layout">
+        
+        <div>
+            <div class="card">
+                <div class="card-title">⚡ 维度一：板块行业配置分析</div>
+                <div class="chart-block">
+                    <div class="chart-wrapper"><canvas id="categoryChart"></canvas></div>
+                    <ul class="chart-legend-list" id="categoryLegend"></ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🌐 维度二：全球地域市场分析</div>
+                <div class="chart-block">
+                    <div class="chart-wrapper"><canvas id="marketChart"></canvas></div>
+                    <ul class="chart-legend-list" id="marketLegend"></ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⚖️ 维度三：独立账户权重分析</div>
+                <div class="chart-block">
+                    <div class="chart-wrapper"><canvas id="accountChart"></canvas></div>
+                    <ul class="chart-legend-list" id="accountLegend"></ul>
+                </div>
+            </div>
+        </div>
+
         <div>
             <div class="table-controls">
                 <div class="filter-group">
                     <select id="accountFilter" onchange="updateUI()">
-                        <option value="all">全部账户</option>
+                        <option value="all">账户过滤: 全部</option>
                         <option value="L">L 账户</option>
                         <option value="X">X 账户</option>
                     </select>
                     <select id="marketFilter" onchange="updateUI()">
-                        <option value="all">所有市场 (美/港/A)</option>
-                        <option value="美股">🇺🇸 美股市场</option>
-                        <option value="港股">🇭🇰 港股市场</option>
-                        <option value="A股">🇨🇳 A股市场</option>
+                        <option value="all">市场过滤: 全部</option>
+                        <option value="美股">🇺🇸 美股</option>
+                        <option value="港股">🇭🇰 港股</option>
+                        <option value="A股">🇨🇳 A股</option>
                     </select>
                     <select id="categoryFilter" onchange="updateUI()">
-                        <option value="all">全板块</option>
+                        <option value="all">板块过滤: 全部</option>
                         <option value="公共事业">⚡ 公共事业</option>
                         <option value="科技">💻 科技</option>
                         <option value="消费">🛍️ 消费</option>
@@ -239,7 +273,7 @@
                     </select>
                 </div>
                 <div>
-                    <button class="btn-primary" onclick="openModal()">+ 添加全新证券/基金持仓</button>
+                    <button class="btn-primary" onclick="openModal()">+ 录入新头寸</button>
                 </div>
             </div>
 
@@ -249,56 +283,44 @@
                         <th>证券标的信息</th>
                         <th>所属账户</th>
                         <th>行业大类</th>
-                        <th>当前实时价</th>
-                        <th>当前总市值</th>
-                        <th>全局总占比</th>
+                        <th>实时价</th>
+                        <th>总市值</th>
+                        <th>全局占比</th>
                     </tr>
                 </thead>
                 <tbody id="portfolioTableBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted);">正在初始化资产底座...</td>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted);">系统正在初始化多源行情矩阵...</td>
                     </tr>
                 </tbody>
             </table>
             
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button onclick="exportBackup()" style="font-size: 12px; padding: 4px 8px;">导出备份</button>
-                <button onclick="importBackup()" style="font-size: 12px; padding: 4px 8px;">导入恢复</button>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button onclick="exportBackup()" style="font-size: 11px; padding: 4px 8px; color:var(--text-muted)">导出物理备份</button>
+                <button onclick="importBackup()" style="font-size: 11px; padding: 4px 8px; color:var(--text-muted)">导入数据快照</button>
                 <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-title">📑 行业与配置分布</div>
-            <div class="chart-container">
-                <canvas id="allocationChart"></canvas>
-            </div>
-            <ul class="sector-list">
-                <li class="sector-item"><span>⚡ 公共事业</span><b id="cat-utility">$0.00 (0%)</b></li>
-                <li class="sector-item"><span>💻 科技板块</span><b id="cat-tech">$0.00 (0%)</b></li>
-                <li class="sector-item"><span>🛍️ 消费大类</span><b id="cat-consumer">$0.00 (0%)</b></li>
-                <li class="sector-item"><span>🏦 金融重仓</span><b id="cat-finance">$0.00 (0%)</b></li>
-            </ul>
-        </div>
     </div>
 </div>
 
 <div class="modal" id="editModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 style="font-size: 18px;">编辑证券头寸</h3>
+            <h3 style="font-size: 16px;">添加全球证券头寸</h3>
             <button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button>
         </div>
         <div class="form-group">
-            <label>证券代码 (如美股 AAPL / A股 600519 / 港股 00700)</label>
+            <label>证券代码 (美股 AAPL / A股 600519 / 港股 00700)</label>
             <input type="text" id="secCode" placeholder="AAPL" style="text-transform: uppercase;">
         </div>
         <div class="form-group">
-            <label>公司/标的名称</label>
-            <input type="text" id="secName" placeholder="苹果公司">
+            <label>标的公司名称</label>
+            <input type="text" id="secName" placeholder="如：苹果公司">
         </div>
         <div class="form-group">
-            <label>划分所属账户</label>
+            <label>分配所属管理账户</label>
             <select id="secAccount">
                 <option value="L">L 账户</option>
                 <option value="X">X 账户</option>
@@ -314,16 +336,16 @@
             </select>
         </div>
         <div class="form-group">
-            <label>持仓数量 (股)</label>
+            <label>清点持仓数量 (股)</label>
             <input type="number" id="secQuantity" placeholder="100" step="any">
         </div>
         <div class="form-group">
-            <label>买入均价成本</label>
+            <label>记录每股买入均价成本 ($ / ¥ / HK$)</label>
             <input type="number" id="secCost" placeholder="150.00" step="any">
         </div>
         <div class="modal-footer">
-            <button onclick="closeModal()">放弃</button>
-            <button class="btn-primary" onclick="savePosition()">录入系统</button>
+            <button onclick="closeModal()">取消</button>
+            <button class="btn-primary" onclick="savePosition()">同步至云端表格</button>
         </div>
     </div>
 </div>
@@ -334,55 +356,41 @@ const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9I
 let portfolio = [];
 let livePriceCache = {};
 
-// 智能市场识别引擎
+// 调色盘配置（针对三大图表进行颜色绑定）
+const COLOR_PALETTE = {
+    category: { '公共事业': '#58a6ff', '科技': '#2ea44f', '消费': '#d29922', '金融': '#da3633' },
+    market: { '美股': '#0052cc', '港股': '#cc0000', 'A股': '#2ea44f' },
+    account: { 'L账户': '#388bfd', 'X账户': '#f2cc60' }
+};
+
 function detectMarket(code) {
     const clean = code.trim().toUpperCase();
-    // 1. 如果纯数字且长度为5位左右，判定为港股
-    if (/^\d{4,5}$/.test(clean)) {
-        return { type: "港股", badgeClass: "mkt-hk", label: "港股" };
-    }
-    // 2. 如果是6位纯数字，或者以SH/SZ结尾/开头，判定为A股
-    if (/^\d{6}$/.test(clean) || clean.includes("SS") || clean.includes("SZ")) {
-        return { type: "A股", badgeClass: "mkt-cn", label: "A股" };
-    }
-    // 3. 其余判定为美股
+    if (/^\d{4,5}$/.test(clean)) return { type: "港股", badgeClass: "mkt-hk", label: "港股" };
+    if (/^\d{6}$/.test(clean) || clean.includes("SS") || clean.includes("SZ")) return { type: "A股", badgeClass: "mkt-cn", label: "A股" };
     return { type: "美股", badgeClass: "mkt-us", label: "美股" };
 }
 
-// 三地全网多源实时行情流抓取
 async function fetchLivePrice(code) {
-    if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
-        return livePriceCache[code].price;
-    }
+    if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) return livePriceCache[code].price;
     const market = detectMarket(code);
     let yahooSymbol = code;
-    
-    // 为雅虎财经转换异构市场的格式代码
-    if (market.type === "港股" && !code.includes(".")) {
-        yahooSymbol = code.padStart(5, '0') + ".HK";
-    } else if (market.type === "A股" && /^\d{6}$/.test(code)) {
-        yahooSymbol = code.startsWith("6") ? code + ".SS" : code + ".SZ";
-    }
-
+    if (market.type === "港股" && !code.includes(".")) yahooSymbol = code.padStart(5, '0') + ".HK";
+    else if (market.type === "A股" && /^\d{6}$/.test(code)) yahooSymbol = code.startsWith("6") ? code + ".SS" : code + ".SZ";
     try {
         let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`);
         let json = await res.json();
         let price = json.chart.result[0].meta.regularMarketPrice;
         if (price && !isNaN(price)) {
-            livePriceCache[code] = { price: price, time: Date.now() };
+            livePriceCache[code] = { price, time: Date.now() };
             return price;
         }
         return null;
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-// 从 Google Sheet 同步底层
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
-
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
@@ -395,25 +403,20 @@ function loadPortfolioFromGoogleSheet() {
                 costPrice: parseFloat(item.cost) || 0,
                 sheetPrice: parseFloat(item.currentPrice) || 0
             }));
-
             localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
-            if (statusEl) statusEl.innerText = '● 全球多源实时行情流连接成功 (已同步)';
+            if (statusEl) statusEl.innerText = '● 实时行情流连接成功 (已与谷歌表格同步)';
             await updateUI();
         })
         .catch(err => {
-            console.error("同步异常:", err);
             if (statusEl) statusEl.innerText = '⚠️ 谷歌同步异常，已启用离线缓存';
             const localData = localStorage.getItem('sceok_portfolio');
-            if (localData) {
-                portfolio = JSON.parse(localData);
-                updateUI();
-            }
+            if (localData) { portfolio = JSON.parse(localData); updateUI(); }
         });
 }
 
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 核心计算与多维渲染过滤
+// 核心计算与多图表动态分流回填
 async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
     const currentMarketFilter = document.getElementById('marketFilter').value;
@@ -422,7 +425,11 @@ async function updateUI() {
     let totalValue = 0; let totalCost = 0;
     let lValue = 0; let lCost = 0;
     let xValue = 0; let xCost = 0;
+    
+    // 初始化三大维度数据统计器
     let catValues = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
+    let mktValues = { '美股': 0, '港股': 0, 'A股': 0 };
+    let accValues = { 'L账户': 0, 'X账户': 0 };
 
     const tbody = document.getElementById('portfolioTableBody');
     
@@ -436,16 +443,15 @@ async function updateUI() {
         totalValue += currentVal;
         totalCost += costVal;
 
-        if (item.account === 'L') { lValue += currentVal; lCost += costVal; }
-        if (item.account === 'X') { xValue += currentVal; xCost += costVal; }
+        if (item.account === 'L') { lValue += currentVal; lCost += costVal; accValues['L账户'] += currentVal; }
+        if (item.account === 'X') { xValue += currentVal; xCost += costVal; accValues['X账户'] += currentVal; }
 
-        if (catValues.hasOwnProperty(item.category)) {
-            catValues[item.category] += currentVal;
-        }
-
+        if (catValues.hasOwnProperty(item.category)) catValues[item.category] += currentVal;
+        
         const marketInfo = detectMarket(item.code);
+        if (mktValues.hasOwnProperty(marketInfo.type)) mktValues[marketInfo.type] += currentVal;
 
-        // 多维联合条件过滤
+        // 级联多维过滤
         if (currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return null;
         if (currentMarketFilter !== 'all' && marketInfo.type !== currentMarketFilter) return null;
         if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return null;
@@ -457,11 +463,9 @@ async function updateUI() {
     tbody.innerHTML = '';
 
     displayItems.forEach(item => {
-        let profileUrl = "";
-        let reportUrl = "";
+        let profileUrl = ""; let reportUrl = "";
         const cleanTicker = item.code.split('.')[0];
 
-        // 核心跳转中枢：根据不同市场自适应拼装简介与官方信息披露渠道链接
         if (item.marketInfo.type === "美股") {
             profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
             reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}&action=getcompany`;
@@ -473,70 +477,103 @@ async function updateUI() {
             profileUrl = `https://finance.sina.com.cn/realstock/company/${item.code.toLowerCase()}/nc.shtml`;
             reportUrl = `http://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&searchkey=${cleanTicker}`;
         }
-
-        // 自适应财报文案名称展示
         const reportLabel = item.marketInfo.type === "美股" ? "📄 SEC财务报表" : item.marketInfo.type === "港股" ? "📄 HKEX官方披露" : "📄 巨潮权威财报";
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
                 <div style="display:flex; align-items:center;">
-                    <b style="font-size: 16px; color:#fff;">${item.code}</b>
+                    <b style="font-size: 15px; color:#fff;">${item.code}</b>
                     <span class="market-badge ${item.marketInfo.badgeClass}">${item.marketInfo.label}</span>
                 </div>
-                <span style="color: var(--text-muted); font-size: 14px;">${item.name}</span>
+                <span style="color: var(--text-muted); font-size: 13px;">${item.name}</span>
                 <div class="info-links-bar">
-                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介</a>
+                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 简介</a>
                     <a href="${reportUrl}" target="_blank" class="action-btn-link">${reportLabel}</a>
                 </div>
             </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
             <td>${item.category}</td>
             <td style="color: var(--primary); font-weight:600;">$${item.livePrice.toFixed(2)}</td>
-            <td>$${item.currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-            <td id="ratio-${item.code}">0.00%</td>
+            <td style="font-weight:600;">$${item.currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td id="ratio-${item.code}" style="color:var(--text-muted)">0.00%</td>
         `;
         tbody.appendChild(tr);
     });
 
-    // 大盘回填汇总
+    // 看板汇总更新
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('g-pnl').innerText = `$${totalProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${totalRate.toFixed(2)}%)`;
     document.getElementById('g-pnl').className = totalProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    const lProfit = lValue - lCost;
-    const lRate = lCost > 0 ? (lProfit / lCost * 100) : 0;
+    const lProfit = lValue - lCost; const lRate = lCost > 0 ? (lProfit / lCost * 100) : 0;
     document.getElementById('l-val').innerText = '$' + lValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('l-pnl').innerText = `$${lProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${lRate.toFixed(2)}%)`;
     document.getElementById('l-pnl').className = lProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    const xProfit = xValue - xCost;
-    const xRate = xCost > 0 ? (xProfit / xCost * 100) : 0;
+    const xProfit = xValue - xCost; const xRate = xCost > 0 ? (xProfit / xCost * 100) : 0;
     document.getElementById('x-val').innerText = '$' + xValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('x-pnl').innerText = `$${xProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${xRate.toFixed(2)}%)`;
     document.getElementById('x-pnl').className = xProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    for (let cat in catValues) {
-        const val = catValues[cat];
-        const pct = totalValue > 0 ? (val / totalValue * 100) : 0;
-        let id = cat === '公共事业' ? 'cat-utility' : cat === '科技' ? 'cat-tech' : cat === '消费' ? 'cat-consumer' : cat === '金融' ? 'cat-finance' : null;
-        if (id) document.getElementById(id).innerText = `$${val.toLocaleString(undefined,{maximumFractionDigits:2})} (${pct.toFixed(1)}%)`;
-    }
-
     displayItems.forEach(item => {
         const el = document.getElementById(`ratio-${item.code}`);
-        if (el) {
-            const pct = totalValue > 0 ? (item.currentVal / totalValue * 100) : 0;
-            el.innerText = pct.toFixed(2) + '%';
-        }
+        if (el) el.innerText = (totalValue > 0 ? (item.currentVal / totalValue * 100) : 0).toFixed(2) + '%';
     });
 
-    updateCharts(catValues);
+    // 重新渲染三大可视化图表区（带动态图例生成机制）
+    renderDimensionChart('categoryChart', 'categoryLegend', catValues, COLOR_PALETTE.category, totalValue);
+    renderDimensionChart('marketChart', 'marketLegend', mktValues, COLOR_PALETTE.market, totalValue);
+    renderDimensionChart('accountChart', 'accountLegend', accValues, COLOR_PALETTE.account, totalValue);
 }
 
-// 远程写入谷歌表格
+// 通用多维度图表及色块图例构造引擎
+let globalCharts = {};
+function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobalValue) {
+    const labels = Object.keys(dataObj);
+    const dataValues = Object.values(dataObj);
+    const backgroundColors = labels.map(l => colorMap[l] || '#8b949e');
+
+    // 1. 刷新重构内部图表
+    if (globalCharts[canvasId]) {
+        globalCharts[canvasId].data.labels = labels;
+        globalCharts[canvasId].data.datasets[0].data = dataValues;
+        globalCharts[canvasId].data.datasets[0].backgroundColor = backgroundColors;
+        globalCharts[canvasId].update();
+    } else {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        globalCharts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderWidth: 1, borderColor: '#161b22' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // 2. 动态生成图表右侧的彩色资产说明列表
+    const legendEl = document.getElementById(legendId);
+    legendEl.innerHTML = '';
+    labels.forEach((label, index) => {
+        const val = dataValues[index];
+        const pct = totalGlobalValue > 0 ? (val / totalGlobalValue * 100) : 0;
+        
+        const li = document.createElement('li');
+        li.className = 'legend-item';
+        li.innerHTML = `
+            <div class="legend-label">
+                <div class="legend-color-box" style="background-color: ${backgroundColors[index]};"></div>
+                <span>${label}</span>
+            </div>
+            <b>$${val.toLocaleString(undefined, {maximumFractionDigits:0})} (${pct.toFixed(1)}%)</b>
+        `;
+        legendEl.appendChild(li);
+    });
+}
+
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
@@ -545,70 +582,32 @@ function savePosition() {
     const quantity = parseFloat(document.getElementById('secQuantity').value);
     const cost = document.getElementById('secCost').value;
 
-    if (!code || !name || isNaN(quantity) || !cost) {
-        alert('请完整填写数据！'); return;
-    }
-
+    if (!code || !name || isNaN(quantity) || !cost) { alert('请完整填写表单核心数据！'); return; }
     const btn = document.querySelector('.modal-footer .btn-primary');
-    btn.innerText = '正在隔空写入云端表格...'; btn.disabled = true;
+    btn.innerText = '正在上传数据矩阵...'; btn.disabled = true;
 
     const newAsset = { code, name, currentPrice: "", account, category, quantity, cost: parseFloat(cost) };
-
-    fetch(GOOGLE_API_URL, {
-        method: 'POST',
-        redirect: 'follow',
-        body: JSON.stringify(newAsset)
-    })
+    fetch(GOOGLE_API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify(newAsset) })
     .then(res => res.json())
     .then(result => {
-        if (result.status === "success") {
-            alert(`【同步成功】资产 ${code} 已存入您的 Google Sheet！`);
-            closeModal();
-            loadPortfolioFromGoogleSheet();
-        } else {
-            alert('写入失败: ' + result.message);
-        }
+        if (result.status === "success") { alert(`【同步成功】资产 ${code} 已录入您的云端表格！`); closeModal(); loadPortfolioFromGoogleSheet(); }
+        else { alert('云端同步故障: ' + result.message); }
     })
-    .catch(err => { alert('无法连通 Google 表格集群中心！'); })
-    .finally(() => { btn.innerText = '录入系统'; btn.disabled = false; });
+    .catch(err => { alert('无法建立与谷歌骨干网的连接！'); })
+    .finally(() => { btn.innerText = '同步至云端表格'; btn.disabled = false; });
 }
 
 setInterval(updateUI, 60000);
-
 function openModal() { document.getElementById('editModal').style.display = 'block'; }
 function closeModal() {
     document.getElementById('editModal').style.display = 'none';
     document.getElementById('secCode').value = ''; document.getElementById('secName').value = '';
     document.getElementById('secQuantity').value = ''; document.getElementById('secCost').value = '';
 }
-
-let chartInstance = null;
-function updateCharts(catValues) {
-    const ctx = document.getElementById('allocationChart').getContext('2d');
-    const labels = Object.keys(catValues);
-    const data = Object.values(catValues);
-    if (chartInstance) {
-        chartInstance.data.labels = labels;
-        chartInstance.data.datasets[0].data = data;
-        chartInstance.update();
-    } else {
-        chartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{ data: data, backgroundColor: ['#58a6ff', '#2ea44f', '#d29922', '#da3633'] }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-    }
-}
-
 function exportBackup() {
     const blob = new Blob([JSON.stringify(portfolio, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `portfolio_backup_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `portfolio_snapshot_${new Date().toISOString().slice(0,10)}.json`; a.click();
 }
 function importBackup() { document.getElementById('importFile').click(); }
 function handleImport(event) {
@@ -617,8 +616,8 @@ function handleImport(event) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if(Array.isArray(data)) { portfolio = data; updateUI(); alert('本地备份导入成功！'); }
-        } catch(err) { alert('文件格式损坏！'); }
+            if(Array.isArray(data)) { portfolio = data; updateUI(); alert('数据快照本地覆盖恢复成功！'); }
+        } catch(err) { alert('快照文件损坏！'); }
     };
     reader.readAsText(file);
 }
