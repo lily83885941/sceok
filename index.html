@@ -178,4 +178,262 @@
             <div class="summary-section-title">🧱 四大核心行业板块资金集中度汇总</div>
             <div class="sector-summary-grid">
                 <div class="sector-box"><div class="sector-box-title">⚡ 公共事业</div><div class="sector-box-val" id="sec-val-公共事业">¥0.00 (0%)</div></div>
-                <div class="sector-box"><div class="sector-box-title">💻 科技板块</div><div class="sector
+                <div class="sector-box"><div class="sector-box-title">💻 科技板块</div><div class="sector-box-val" id="sec-val-科技">¥0.00 (0%)</div></div>
+                <div class="sector-box"><div class="sector-box-title">🛍️ 消费大类</div><div class="sector-box-val" id="sec-val-消费">¥0.00 (0%)</div></div>
+                <div class="sector-box"><div class="sector-box-title">🏦 金融重仓</div><div class="sector-box-val" id="sec-val-金融">¥0.00 (0%)</div></div>
+            </div>
+
+            <div class="summary-section-title" style="margin-top:15px;">📑 单个证券及归类全景透视表</div>
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead><tr><th>证券名称</th><th>所属账户</th><th>行业大类</th><th>交易市场</th><th>当前市值(CNY)</th><th>全局总占比</th></tr></thead>
+                    <tbody id="report-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:14px; color:var(--accent)">编辑证券头寸</h3>
+            <input type="hidden" id="edit-idx">
+            <div class="form-group"><label>证券代码</label><input type="text" id="f-code" placeholder="如: AAPL 或 600519"></div>
+            <div class="form-group"><label>公司/标的名称</label><input type="text" id="f-name" placeholder="如: 苹果"></div>
+            
+            <div class="form-group">
+                <label>划分所属账户</label>
+                <select id="f-acct"><option value="L">L 账户</option><option value="X">X 账户</option></select>
+            </div>
+            <div class="form-group">
+                <label>划分行业大类</label>
+                <select id="f-sector"><option value="公共事业">⚡ 公共事业</option><option value="科技">💻 科技</option><option value="消费">🛍️ 消费</option><option value="金融">🏦 金融</option></select>
+            </div>
+
+            <div class="form-group"><label>持仓数量 (股/份)</label><input type="number" id="f-qty"></div>
+            <div class="form-group"><label>买入均价成本</label><input type="number" step="0.01" id="f-cost"></div>
+            <div class="form-group"><label>高价动态报警线 (选填)</label><input type="number" step="0.01" id="f-high"></div>
+            <div class="form-group"><label>低价动态报警线 (选填)</label><input type="number" step="0.01" id="f-low"></div>
+            <div class="modal-btns">
+                <button class="btn-sm" style="background:#212e4a;" onclick="closeModal()">放弃</button>
+                <button class="btn-sm" style="background:var(--accent);color:#000;font-weight:bold;" onclick="save()">录入系统</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stocks = JSON.parse(localStorage.getItem('my_stocks') || '[]');
+        
+        // 维持多维过滤器当前状态
+        let activeFilters = { acct: 'all', sector: 'all' };
+
+        const usMetaConfig = {
+            'AAPL': { web: 'https://www.apple.com/investor/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000320193' },
+            'NVDA': { web: 'https://investor.nvidia.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001045810' },
+            'MSFT': { web: 'https://www.microsoft.com/en-us/investor', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000789019' },
+            'META': { web: 'https://investor.fb.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001326801' },
+            'TSLA': { web: 'https://ir.tesla.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001318605' }
+        };
+
+        function judgeMarket(code) {
+            let c = code.toUpperCase().trim();
+            if (/^\d+$/.test(c)) {
+                if (c.length === 5 || (c.length === 4 && (c.startsWith('0') || c.startsWith('1')))) return { id: 'HK', name: '港股', badge: 'badge-hk' };
+                return { id: 'A', name: 'A股', badge: 'badge-a' };
+            }
+            return { id: 'US', name: '美股', badge: 'badge-us' };
+        }
+
+        function requestNoticePermission() {
+            if (!("Notification" in window)) { alert("此端不支持系统推送通知。"); return; }
+            Notification.requestPermission().then(p => {
+                if (p === "granted") {
+                    alert("🔔 全球监控推送系统已上线。");
+                    new Notification("通知大厅", { body: "多账户多行业交叉监测核心已成功加载。" });
+                }
+            });
+        }
+
+        function getMock(code) {
+            let b = 80, pe = "15.4", roe = "13.9%", g = "+4.2%";
+            let c = code.toUpperCase().trim();
+            if(c.startsWith('600519')){ b=1750; pe="28.4"; roe="29.1%"; g="+18.2%"; }
+            else if(c==='META') { b=485; pe="24.1"; roe="28.2%"; }
+            else if(c==='NVDA') { b=125; pe="65.2"; roe="45.1%"; }
+            else if(c==='AAPL') { b=182; pe="26.3"; roe="35.4%"; }
+            let p = b * (1 + (Math.random()-0.49)/100);
+            return { p: p.toFixed(2), c: ((Math.random()-0.49)*2).toFixed(2), pe, roe, g };
+        }
+
+        function render() {
+            // 初始化交叉统计大矩阵
+            let mData = {
+                all: { mv: 0, cv: 0, cnt: 0 },
+                'acct-L': { mv: 0, cv: 0, cnt: 0 },
+                'acct-X': { mv: 0, cv: 0, cnt: 0 }
+            };
+            let sectorMv = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
+            
+            const list = document.getElementById('list'), rb = document.getElementById('report-body');
+            list.innerHTML = ''; rb.innerHTML = '';
+            
+            stocks.forEach((s, i) => {
+                // 智能数据向后兼容兜底机制（保障老数据导入不崩溃）
+                if(!s.acct) s.acct = 'L'; 
+                if(!s.sector) s.sector = '科技';
+
+                let m = getMock(s.code);
+                let market = judgeMarket(s.code);
+                let curMv = s.qty * m.p;
+                let costMv = s.qty * s.cost;
+                
+                // 进行账本核心分类层层累加
+                mData.all.mv += curMv; mData.all.cv += costMv; mData.all.cnt++;
+                let acctKey = 'acct-' + s.acct;
+                if(mData[acctKey]) {
+                    mData[acctKey].mv += curMv; mData[acctKey].cv += costMv; mData[acctKey].cnt++;
+                }
+                if(sectorMv[s.sector] !== undefined) {
+                    sectorMv[s.sector] += curMv;
+                }
+
+                let pft = curMv - costMv;
+                let isAlert = (s.high && m.p >= s.high) || (s.low && m.p <= s.low);
+                
+                let config = usMetaConfig[s.code.toUpperCase().trim()] || { 
+                    web: `https://www.google.com/search?q=${encodeURIComponent(s.name + ' 官网')}`, 
+                    sec: `https://www.sec.gov/edgar/searchedgar/companysearch` 
+                };
+
+                // 执行交叉双重过滤器检验逻辑
+                let passAcct = (activeFilters.acct === 'all' || activeFilters.acct === s.acct);
+                let passSector = (activeFilters.sector === 'all' || activeFilters.sector === s.sector);
+
+                if (passAcct && passSector) {
+                    list.innerHTML += `<div class="stock-card ${isAlert?'alert':''}">
+                        <div class="card-top">
+                            <div>
+                                <span class="code">${s.code}</span>
+                                <a href="${config.web}" target="_blank" class="name-link">${s.name}</a>
+                                <div class="badge-group" style="display:inline-flex;">
+                                    <span class="market-badge ${market.badge}">${market.name}</span>
+                                    <span class="market-badge badge-acct">${s.acct}账户</span>
+                                    <span class="market-badge badge-sector">${s.sector}</span>
+                                </div>
+                            </div>
+                            <div class="change ${m.c>=0?'up':'down'}">${m.c>=0?'▲':'▼'}${Math.abs(m.c)}%</div>
+                        </div>
+                        <div class="data-grid">
+                            <div class="data-cell"><div class="lbl">持仓</div><div class="val">${s.qty}</div></div>
+                            <div class="data-cell"><div class="lbl">现价</div><div class="val" style="color:var(--accent)">${m.p}</div></div>
+                            <div class="data-cell"><div class="lbl">盈亏</div><div class="val ${pft>=0?'up':'down'}">${(pft/10000).toFixed(2)}万</div></div>
+                            <div class="data-cell"><div class="lbl">市值</div><div class="val">${(curMv/10000).toFixed(2)}万</div></div>
+                        </div>
+                        <div class="links-row">
+                            <a href="${config.web}" target="_blank" class="ext-link">公司官网 🌐</a>
+                            <a href="${config.sec}" target="_blank" class="ext-link sec">EDGAR (SEC) 🏛️</a>
+                        </div>
+                        <div class="card-ft">
+                            <div>${isAlert?'⚠️ 触发价格设定线':'实时数据链路通畅'}</div>
+                            <div><span onclick="edit(${i})" style="cursor:pointer;color:var(--accent)">编辑修改</span> <span onclick="del(${i})" style="color:#ff4d4f;margin-left:12px;cursor:pointer;">删除标的</span></div>
+                        </div>
+                    </div>`;
+                }
+            });
+            
+            // 批量渲染上层汇总账本的数值
+            ['all', 'acct-L', 'acct-X'].forEach(id => {
+                document.getElementById(`cnt-${id}`).innerText = mData[id].cnt;
+                document.getElementById(`mv-${id}`).innerText = '¥' + (mData[id].mv / 10000).toFixed(2) + '万';
+                
+                let tp = mData[id].mv - mData[id].cv;
+                let ratio = mData[id].cv > 0 ? (tp / mData[id].cv * 100).toFixed(2) : '0.00';
+                let node = document.getElementById(`pft-${id}`);
+                node.innerText = `${tp >= 0 ? '+' : ''}${(tp / 10000).toFixed(2)}万 (${ratio}%)`;
+                node.className = 'cat-val ' + (tp >= 0 ? 'up' : 'down');
+            });
+
+            // 渲染行业大类汇总百分比以及穿透分析报表
+            let totalMv = mData.all.mv;
+            ['公共事业', '科技', '消费', '金融'].forEach(sector => {
+                let sMv = sectorMv[sector];
+                let pct = totalMv > 0 ? (sMv / totalMv * 100).toFixed(1) : 0;
+                document.getElementById(`sec-val-${sector}`).innerText = `¥${(sMv/10000).toFixed(2)}万 (${pct}%)`;
+            });
+
+            stocks.forEach(s => {
+                let m = getMock(s.code);
+                let market = judgeMarket(s.code);
+                let curMv = s.qty * m.p;
+                let pct = totalMv > 0 ? (curMv / totalMv * 100).toFixed(1) : 0;
+
+                rb.innerHTML += `<tr>
+                    <td style="font-weight:bold; color:#fff;">${s.name}</td>
+                    <td><span class="market-badge badge-acct">${s.acct} 账户</span></td>
+                    <td><span class="market-badge badge-sector">${s.sector}</span></td>
+                    <td><span class="market-badge ${market.badge}">${market.name}</span></td>
+                    <td>¥${curMv.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                    <td style="color:var(--accent); font-weight:bold;">${pct}%</td>
+                </tr>`;
+            });
+        }
+
+        function setFilter(btn, value) {
+            let pNode = btn.parentNode;
+            pNode.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            let type = btn.getAttribute('data-type');
+            activeFilters[type] = value;
+            render();
+        }
+
+        function switchTab(e, id) {
+            document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+            e.target.classList.add('active'); document.getElementById(id).classList.add('active'); render();
+        }
+        function openModal() { document.getElementById('edit-idx').value=''; document.getElementById('modal').style.display='flex'; }
+        function closeModal() { document.getElementById('modal').style.display='none'; }
+        
+        function edit(i) {
+            const s=stocks[i]; document.getElementById('edit-idx').value=i;
+            document.getElementById('f-code').value=s.code; document.getElementById('f-name').value=s.name;
+            document.getElementById('f-acct').value=s.acct || 'L'; document.getElementById('f-sector').value=s.sector || '科技';
+            document.getElementById('f-qty').value=s.qty; document.getElementById('f-cost').value=s.cost;
+            document.getElementById('f-high').value=s.high||''; document.getElementById('f-low').value=s.low||'';
+            document.getElementById('modal').style.display='flex';
+        }
+        
+        function save() {
+            let i=document.getElementById('edit-idx').value, data={
+                code: document.getElementById('f-code').value.trim(), name: document.getElementById('f-name').value.trim(),
+                acct: document.getElementById('f-acct').value, sector: document.getElementById('f-sector').value,
+                qty: parseInt(document.getElementById('f-qty').value) || 0, cost: parseFloat(document.getElementById('f-cost').value) || 0,
+                high: parseFloat(document.getElementById('f-high').value) || null, low: parseFloat(document.getElementById('f-low').value) || null
+            };
+            if(data.code && data.name) {
+                if(i==='') stocks.push(data); else stocks[i]=data;
+                localStorage.setItem('my_stocks', JSON.stringify(stocks)); closeModal(); render();
+            } else { alert('请填写完整'); }
+        }
+
+        function checkMockNewReport() {
+            if (stocks.length === 0) return;
+            let lucky = stocks[Math.floor(Math.random() * stocks.length)];
+            if (Notification.permission === "granted") {
+                new Notification(`📑 财报实时披露提醒`, {
+                    body: `🚨 发现新公告：您 [${lucky.acct}账户] 下持仓的 [${lucky.name} (${lucky.code}) - ${lucky.sector}板块] 刚刚发布了最新财报，请注意查看资产占比动态！`
+                });
+            }
+        }
+
+        function del(i) { if(confirm('确定删除吗?')){ stocks.splice(i,1); localStorage.setItem('my_stocks', JSON.stringify(stocks)); render(); } }
+        function exportData() { navigator.clipboard.writeText(JSON.stringify(stocks)); alert('持仓数据已成功复制到剪贴板！'); }
+        function importData() { let d=prompt('请粘贴导出的持仓 JSON 文本数据：'); if(d){ try { stocks=JSON.parse(d); localStorage.setItem('my_stocks', JSON.stringify(stocks)); render(); alert('导入成功！'); } catch(e) { alert('解析失败'); } } }
+        
+        setInterval(render, 4000); 
+        setInterval(checkMockNewReport, 40000);
+        render();
+    </script>
+</body>
+</html>
