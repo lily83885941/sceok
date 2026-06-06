@@ -320,14 +320,13 @@
 </div>
 
 <script>
-// 💡 Google Sheet 部署后的公共宏 WebApp 地址
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
 
 let portfolio = [];
 let livePriceCache = {};
 let selectedAccountState = 'all'; 
 let currentTrendChart = null;
-let customFinancialDB = {}; // 💡 页面二数据容器：自动连接并同步你的 Google Sheet
+let customFinancialDB = {}; 
 
 const COLOR_PALETTE = {
     category: { '公共事业': '#58a6ff', '科技': '#2ea44f', '消费': '#d29922', '金融': '#da3633' },
@@ -372,59 +371,58 @@ async function fetchLivePrice(code) {
     } catch (e) { return null; }
 }
 
-// 🌐 从同一个 Google Sheet 拉取全量数据，并自适应提取页面二的财报基本面指标
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
+            // ⭐ 核心优化容错：确保哪怕没有 Sheet2 匹配，也绝不丢弃任何 Sheet1 持仓
             portfolio = data.map(item => ({
-                code: item.code.toUpperCase().trim(),
-                name: item.name,
-                account: (item.account || '').toUpperCase().trim(), 
-                category: item.category,
+                code: item.code ? item.code.toUpperCase().trim() : '',
+                name: item.name || '',
+                account: item.account ? item.account.toUpperCase().trim() : '', 
+                category: item.category || '其它',
                 quantity: parseFloat(item.quantity) || 0,
                 costPrice: parseFloat(item.cost) || 0,
                 sheetPrice: parseFloat(item.currentPrice) || 0
-            }));
+            })).filter(item => item.code !== '');
 
-            // 💡 自动解析绑定：如果你的 Google Sheet 里填了这些深度财报指标，将直接动态覆盖到页面二
+            // 解析绑定财务指标
             data.forEach(item => {
                 if (item.code) {
                     const ticker = item.code.toUpperCase().trim();
-                    customFinancialDB[ticker] = {
-                        name: item.name || ticker,
-                        market: detectMarket(ticker).type,
-                        revenue: item.revenue || '--',
-                        revTrend: item.revTrend || '',
-                        revUp: item.revUp !== undefined ? item.revUp : true,
-                        netIncome: item.netIncome || '--',
-                        netTrend: item.netTrend || '',
-                        netUp: item.netUp !== undefined ? item.netUp : true,
-                        grossMargin: item.grossMargin || '--',
-                        netMargin: item.netMargin || '--',
-                        eps: item.eps || '--',
-                        bps: item.bps || '--',
-                        pe: item.pe || '--',
-                        pb: item.pb || '--',
-                        ps: item.ps || '--',
-                        labels: item.chartLabels ? item.chartLabels.split(',') : ['Q1', 'Q2', 'Q3', 'Q4'],
-                        values: item.chartData ? item.chartData.split(',').map(Number) : [10, 20, 15, 30]
-                    };
+                    if(item.revenue) { // 仅当拥有财报数据时进行组装
+                        customFinancialDB[ticker] = {
+                            name: item.name || ticker,
+                            market: detectMarket(ticker).type,
+                            revenue: item.revenue || '--',
+                            revTrend: item.revTrend || '',
+                            revUp: item.revUp !== undefined ? (item.revUp === true || item.revUp === "TRUE") : true,
+                            netIncome: item.netIncome || '--',
+                            netTrend: item.netTrend || '',
+                            netUp: item.netUp !== undefined ? (item.netUp === true || item.netUp === "TRUE") : true,
+                            grossMargin: item.grossMargin || '--',
+                            netMargin: item.netMargin || '--',
+                            eps: item.eps || '--',
+                            bps: item.bps || '--',
+                            pe: item.pe || '--',
+                            pb: item.pb || '--',
+                            ps: item.ps || '--',
+                            labels: item.chartLabels ? item.chartLabels.split(',') : ['Q1', 'Q2', 'Q3', 'Q4'],
+                            values: item.chartData ? item.chartData.split(',').map(Number) : [10, 20, 15, 30]
+                        };
+                    }
                 }
             });
 
-            // 如果 Google Sheet 里有些公司没配置完财报数据，则自动启动兜底静态样板，确保美观不空白
+            // 兜底静态样板（避免完全没配时空荡荡）
             const fallbackDB = {
                 'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', netUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
                 'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', netUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] },
-                'AEP': { name: 'American Electric Power (美国电力)', market: '美股', revenue: '5.10B', revTrend: '+ 4.1%', revUp: true, netIncome: '0.63B', netTrend: '+ 5.2%', netUp: true, grossMargin: '38.7%', netMargin: '12.3%', eps: '$1.21', bps: '$48.30', pe: '16.2', pb: '1.9', ps: '2.0', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [4.8, 4.9, 5.2, 5.10] },
-                'SOFI': { name: 'SoFi Technologies', market: '美股', revenue: '0.68B', revTrend: '+ 30.2%', revUp: true, netIncome: '0.09B', netTrend: '+ 110%', netUp: true, grossMargin: '76.3%', netMargin: '14.3%', eps: '$0.05', bps: '$5.40', pe: '65.0', pb: '2.6', ps: '4.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [0.52, 0.58, 0.62, 0.68] },
-                'C': { name: 'Citigroup Inc. (花旗集团)', market: '美股', revenue: '20.32B', revTrend: '+ 1.1%', revUp: true, netIncome: '3.23B', netTrend: '- 4.3%', netUp: false, grossMargin: '44.1%', netMargin: '15.9%', eps: '$1.51', bps: '$98.50', pe: '9.2', pb: '0.55', ps: '1.4', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [21.1, 20.2, 19.8, 20.32] },
-                'GE': { name: 'General Electric (通用电气)', market: '美股', revenue: '8.94B', revTrend: '+ 5.8%', revUp: true, netIncome: '0.78B', netTrend: '+ 8.4%', netUp: true, grossMargin: '29.5%', netMargin: '8.7%', eps: '$1.15', bps: '$28.10', pe: '35.2', pb: '5.4', ps: '2.1', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [8.2, 8.5, 8.8, 8.94] }
+                'AEP': { name: 'American Electric Power (美国电力)', market: '美股', revenue: '5.10B', revTrend: '+ 4.1%', revUp: true, netIncome: '0.63B', netTrend: '+ 5.2%', netUp: true, grossMargin: '38.7%', netMargin: '12.3%', eps: '$1.21', bps: '$48.30', pe: '16.2', pb: '1.9', ps: '2.0', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [4.8, 4.9, 5.2, 5.10] }
             };
             Object.keys(fallbackDB).forEach(tk => {
-                if(!customFinancialDB[tk] || customFinancialDB[tk].revenue === '--') { customFinancialDB[tk] = fallbackDB[tk]; }
+                if(!customFinancialDB[tk]) { customFinancialDB[tk] = fallbackDB[tk]; }
             });
 
             localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
@@ -478,7 +476,6 @@ async function updateUI() {
         let profileUrl = "", reportUrl = "";
         const cleanTicker = item.code.split('.')[0];
 
-        // 🟢 彻底重构修复：美股统一调用 EDGAR 官方模糊搜素接口，保障页面一和页面二彻底解决 CIK 报错
         if (item.marketInfo.type === "美股") {
             profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
             reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}`;
@@ -564,7 +561,6 @@ function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobal
     });
 }
 
-/* ==================== 页面二：云端实时动态绑定逻辑 ==================== */
 function initFinancialPage() {
     const listEl = document.getElementById('companyList'); listEl.innerHTML = '';
     const tickers = Object.keys(customFinancialDB);
@@ -589,7 +585,6 @@ function selectFinancialCompany(ticker) {
     const data = customFinancialDB[ticker]; if(!data) return;
     document.getElementById('activeCompanyName').innerText = data.name;
     
-    // 🟢 彻底修复页面二财务源点击链接报错：使用公共 Edgar 模糊查询替换容易挂掉的固化 CIK 地址
     const reportLinkEl = document.getElementById('secReportLink');
     if (data.market === "美股") {
         reportLinkEl.href = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${ticker}`;
