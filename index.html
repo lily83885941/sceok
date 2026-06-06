@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球多账户多行业资产综合管理系统 - MULTI-ANALYSIS</title>
+    <title>全球多账户多行业资产综合管理系统 - REALTIME SYNC</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -25,7 +25,7 @@
             padding: 20px;
             line-height: 1.5;
         }
-        .container { max-width: 1600px; margin: 0 auto; }
+        .container { max-width: 1650px; margin: 0 auto; }
         header {
             display: flex;
             justify-content: space-between;
@@ -69,13 +69,13 @@
         .pnl-up { color: #39d353; font-size: 14px; font-weight: 600; }
         .pnl-down { color: #f85149; font-size: 14px; font-weight: 600; }
         
-        /* 左右大对调：左侧1.2份放可视化，右侧2份放表格控制数据 */
+        /* 左右布局分流 */
         .main-layout {
             display: grid;
-            grid-template-columns: 1.2fr 2fr;
+            grid-template-columns: 1.1fr 2fr;
             gap: 25px;
         }
-        @media (max-width: 1100px) {
+        @media (max-width: 1200px) {
             .main-layout { grid-template-columns: 1fr; }
         }
         
@@ -115,7 +115,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        th, td { padding: 12px 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
         th { background-color: #1f242c; font-weight: 600; color: var(--text-muted); }
         tr:hover { background-color: #1f242c; }
         
@@ -124,6 +124,7 @@
             border-radius: 12px;
             font-size: 11px;
             font-weight: 500;
+            text-transform: uppercase;
         }
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
@@ -151,15 +152,15 @@
         }
         .action-btn-link:hover { text-decoration: underline; color: #fff; }
 
-        /* 图表专用精细排版 */
+        /* 图表排版布局 */
         .chart-block {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
-        .chart-wrapper { width: 140px; height: 140px; position: relative; }
+        .chart-wrapper { width: 130px; height: 130px; position: relative; }
         .chart-legend-list {
             list-style: none;
             flex: 1;
@@ -175,7 +176,7 @@
         .legend-label { display: flex; align-items: center; gap: 6px; }
         .legend-color-box { width: 10px; height: 10px; border-radius: 2px; }
 
-        /* 弹窗样式 */
+        /* 录入弹窗 */
         .modal {
             display: none;
             position: fixed;
@@ -198,10 +199,10 @@
 <div class="container">
     <header>
         <div>
-            <h1>PORTFOLIO MATRIX</h1>
-            <p style="color: var(--text-muted); font-size: 13px;">全球多账户、多维资产配置自动化深度可视看板</p>
+            <h1>PORTFOLIO KINETIC</h1>
+            <p style="color: var(--text-muted); font-size: 13px;">全球资产多端实时同步智能监控看板 - 股数/市值同步修正版</p>
         </div>
-        <div class="status-badge" id="ws-status">⏳ 正在从 Google Sheet 同步数据资产底层...</div>
+        <div class="status-badge" id="ws-status">⏳ 正在同步 Google Sheet 数据矩阵...</div>
     </header>
 
     <div class="matrix-grid">
@@ -283,21 +284,22 @@
                         <th>证券标的信息</th>
                         <th>所属账户</th>
                         <th>行业大类</th>
-                        <th>实时价</th>
-                        <th>总市值</th>
+                        <th>持仓股数</th>
+                        <th>当前实时价</th>
+                        <th>当前总市值</th>
                         <th>全局占比</th>
                     </tr>
                 </thead>
                 <tbody id="portfolioTableBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted);">系统正在初始化多源行情矩阵...</td>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted);">系统正在初始化多源行情流与云端底座...</td>
                     </tr>
                 </tbody>
             </table>
             
             <div style="margin-top: 15px; display: flex; gap: 10px;">
                 <button onclick="exportBackup()" style="font-size: 11px; padding: 4px 8px; color:var(--text-muted)">导出物理备份</button>
-                <button onclick="importBackup()" style="font-size: 11px; padding: 4px 8px; color:var(--text-muted)">导入数据快照</button>
+                <button onclick="importBackup()" style="font-size: 11px; padding: 4px 8px; color:var(--text-muted)">导入快照恢复</button>
                 <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
             </div>
         </div>
@@ -340,7 +342,7 @@
             <input type="number" id="secQuantity" placeholder="100" step="any">
         </div>
         <div class="form-group">
-            <label>记录每股买入均价成本 ($ / ¥ / HK$)</label>
+            <label>记录每股买入均价成本</label>
             <input type="number" id="secCost" placeholder="150.00" step="any">
         </div>
         <div class="modal-footer">
@@ -356,7 +358,6 @@ const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9I
 let portfolio = [];
 let livePriceCache = {};
 
-// 调色盘配置（针对三大图表进行颜色绑定）
 const COLOR_PALETTE = {
     category: { '公共事业': '#58a6ff', '科技': '#2ea44f', '消费': '#d29922', '金融': '#da3633' },
     market: { '美股': '#0052cc', '港股': '#cc0000', 'A股': '#2ea44f' },
@@ -390,25 +391,25 @@ async function fetchLivePrice(code) {
 
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
-    if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
+    if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 核心数据链...';
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
             portfolio = data.map(item => ({
                 code: item.code.toUpperCase().trim(),
                 name: item.name,
-                account: item.account,
+                account: (item.account || '').toUpperCase().trim(), 
                 category: item.category,
                 quantity: parseFloat(item.quantity) || 0,
                 costPrice: parseFloat(item.cost) || 0,
                 sheetPrice: parseFloat(item.currentPrice) || 0
             }));
             localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
-            if (statusEl) statusEl.innerText = '● 实时行情流连接成功 (已与谷歌表格同步)';
+            if (statusEl) statusEl.innerText = '● 数据云同步成功：持仓数量与独立账户全透传';
             await updateUI();
         })
         .catch(err => {
-            if (statusEl) statusEl.innerText = '⚠️ 谷歌同步异常，已启用离线缓存';
+            if (statusEl) statusEl.innerText = '⚠️ 云端同步异常，已启用本地快照缓存';
             const localData = localStorage.getItem('sceok_portfolio');
             if (localData) { portfolio = JSON.parse(localData); updateUI(); }
         });
@@ -416,7 +417,7 @@ function loadPortfolioFromGoogleSheet() {
 
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 核心计算与多图表动态分流回填
+// 精密重算与页面渲染
 async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
     const currentMarketFilter = document.getElementById('marketFilter').value;
@@ -426,17 +427,18 @@ async function updateUI() {
     let lValue = 0; let lCost = 0;
     let xValue = 0; let xCost = 0;
     
-    // 初始化三大维度数据统计器
     let catValues = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
     let mktValues = { '美股': 0, '港股': 0, 'A股': 0 };
     let accValues = { 'L账户': 0, 'X账户': 0 };
 
     const tbody = document.getElementById('portfolioTableBody');
     
-    const renderDataPromises = portfolio.map(async (item) => {
+    // 【第一步】计算全局汇总、各个维度占比
+    const fullCalculatedItems = await Promise.all(portfolio.map(async (item) => {
         let fetchedPrice = await fetchLivePrice(item.code);
         let livePrice = fetchedPrice || item.sheetPrice || item.costPrice;
 
+        // 【完美修复核心】：使用云端真实的 quantity 股数进行市值累乘
         const currentVal = livePrice * item.quantity;
         const costVal = item.costPrice * item.quantity;
 
@@ -451,21 +453,21 @@ async function updateUI() {
         const marketInfo = detectMarket(item.code);
         if (mktValues.hasOwnProperty(marketInfo.type)) mktValues[marketInfo.type] += currentVal;
 
-        // 级联多维过滤
-        if (currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return null;
-        if (currentMarketFilter !== 'all' && marketInfo.type !== currentMarketFilter) return null;
-        if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return null;
-
         return { ...item, livePrice, currentVal, marketInfo };
-    });
+    }));
 
-    const displayItems = (await Promise.all(renderDataPromises)).filter(Boolean);
     tbody.innerHTML = '';
 
-    displayItems.forEach(item => {
+    // 【第二步】多维联动筛选和列表生成
+    fullCalculatedItems.forEach(item => {
+        if (currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return;
+        if (currentMarketFilter !== 'all' && item.marketInfo.type !== currentMarketFilter) return;
+        if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return;
+
         let profileUrl = ""; let reportUrl = "";
         const cleanTicker = item.code.split('.')[0];
 
+        // 维持原版稳定跳转
         if (item.marketInfo.type === "美股") {
             profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
             reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}&action=getcompany`;
@@ -494,6 +496,7 @@ async function updateUI() {
             </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
             <td>${item.category}</td>
+            <td style="font-weight: 500; color:#e1e4e8;">${item.quantity.toLocaleString()}</td>
             <td style="color: var(--primary); font-weight:600;">$${item.livePrice.toFixed(2)}</td>
             <td style="font-weight:600;">$${item.currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td id="ratio-${item.code}" style="color:var(--text-muted)">0.00%</td>
@@ -501,7 +504,7 @@ async function updateUI() {
         tbody.appendChild(tr);
     });
 
-    // 看板汇总更新
+    // 【第三步】汇总面板赋值
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -518,25 +521,23 @@ async function updateUI() {
     document.getElementById('x-pnl').innerText = `$${xProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${xRate.toFixed(2)}%)`;
     document.getElementById('x-pnl').className = xProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    displayItems.forEach(item => {
+    fullCalculatedItems.forEach(item => {
         const el = document.getElementById(`ratio-${item.code}`);
         if (el) el.innerText = (totalValue > 0 ? (item.currentVal / totalValue * 100) : 0).toFixed(2) + '%';
     });
 
-    // 重新渲染三大可视化图表区（带动态图例生成机制）
+    // 【第四步】重新渲染三大饼图和旁边附带的彩色数据标注
     renderDimensionChart('categoryChart', 'categoryLegend', catValues, COLOR_PALETTE.category, totalValue);
     renderDimensionChart('marketChart', 'marketLegend', mktValues, COLOR_PALETTE.market, totalValue);
     renderDimensionChart('accountChart', 'accountLegend', accValues, COLOR_PALETTE.account, totalValue);
 }
 
-// 通用多维度图表及色块图例构造引擎
 let globalCharts = {};
 function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobalValue) {
     const labels = Object.keys(dataObj);
     const dataValues = Object.values(dataObj);
     const backgroundColors = labels.map(l => colorMap[l] || '#8b949e');
 
-    // 1. 刷新重构内部图表
     if (globalCharts[canvasId]) {
         globalCharts[canvasId].data.labels = labels;
         globalCharts[canvasId].data.datasets[0].data = dataValues;
@@ -554,7 +555,6 @@ function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobal
         });
     }
 
-    // 2. 动态生成图表右侧的彩色资产说明列表
     const legendEl = document.getElementById(legendId);
     legendEl.innerHTML = '';
     labels.forEach((label, index) => {
@@ -577,7 +577,7 @@ function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobal
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
-    const account = document.getElementById('secAccount').value;
+    const account = document.getElementById('secAccount').value.toUpperCase().trim();
     const category = document.getElementById('secCategory').value;
     const quantity = parseFloat(document.getElementById('secQuantity').value);
     const cost = document.getElementById('secCost').value;
@@ -590,10 +590,10 @@ function savePosition() {
     fetch(GOOGLE_API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify(newAsset) })
     .then(res => res.json())
     .then(result => {
-        if (result.status === "success") { alert(`【同步成功】资产 ${code} 已录入您的云端表格！`); closeModal(); loadPortfolioFromGoogleSheet(); }
+        if (result.status === "success") { alert(`【同步成功】资产 ${code} 已同步至您的 Google Sheet！`); closeModal(); loadPortfolioFromGoogleSheet(); }
         else { alert('云端同步故障: ' + result.message); }
     })
-    .catch(err => { alert('无法建立与谷歌骨干网的连接！'); })
+    .catch(err => { alert('无法建立与谷歌网络的连接！'); })
     .finally(() => { btn.innerText = '同步至云端表格'; btn.disabled = false; });
 }
 
@@ -616,8 +616,8 @@ function handleImport(event) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if(Array.isArray(data)) { portfolio = data; updateUI(); alert('数据快照本地覆盖恢复成功！'); }
-        } catch(err) { alert('快照文件损坏！'); }
+            if(Array.isArray(data)) { portfolio = data; updateUI(); alert('数据覆盖恢复成功！'); }
+        } catch(err) { alert('文件格式错误！'); }
     };
     reader.readAsText(file);
 }
