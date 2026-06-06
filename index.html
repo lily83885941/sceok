@@ -1,48 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球多账户多行业资产综合管理系统 - REALTIME</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --text-muted: #8b949e;
+            --primary: #58a6ff;
+            --success: #2ea44f;
+            --danger: #da3633;
+            --warning: #d29922;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+        h1 { font-size: 24px; font-weight: 600; }
+        .status-badge {
+            background: #1f242c;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+        .card-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-value { font-size: 28px; font-weight: bold; margin-bottom: 4px; }
+        .pnl-up { color: #39d353; font-size: 14px; font-weight: 600; }
+        .pnl-down { color: #f85149; font-size: 14px; font-weight: 600; }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 992px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+        
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group { display: flex; gap: 10px; }
+        select, input, button {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        select:focus, input:focus { border-color: var(--primary); }
+        button {
+            cursor: pointer;
+            font-weight: 500;
+            background-color: #21262d;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #30363d; border-color: #8b949e; }
+        .btn-primary { background-color: var(--success); border-color: rgba(240,246,252,0.1); color: #fff; }
+        .btn-primary:hover { background-color: #2c8543; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #1f242c; font-weight: 600; font-size: 14px; color: var(--text-muted); }
+        tr:hover { background-color: #1f242c; }
+        
+        .badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
+        .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
+        
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 90%; max-width: 500px;
+            margin: 10% auto;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        
+        .chart-container { height: 260px; position: relative; margin-top: 15px; }
+        .sector-list { margin-top: 20px; list-style: none; }
+        .sector-item {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            border-bottom: 1px dashed var(--border-color); font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>PORTFOLIO</h1>
+            <p style="color: var(--text-muted); font-size: 14px;">全球多账户多行业资产全自动综合监控看板</p>
+        </div>
+        <div class="status-badge" id="ws-status">⏳ 正在从 Google Sheet 同步资产矩阵...</div>
+    </header>
+
+    <div class="matrix-grid">
+        <div class="card" style="border-left: 4px solid var(--primary);">
+            <div class="card-title">👑 全账户大统一汇总</div>
+            <div class="card-value" id="g-val">$0.00</div>
+            <div id="g-pnl" class="pnl-up">$0.00 (0.00%)</div>
+        </div>
+        <div class="card" style="border-left: 4px solid #58a6ff;">
+            <div class="card-title">🔒 L 独立账户</div>
+            <div class="card-value" id="l-val">$0.00</div>
+            <div id="l-pnl" class="pnl-up">$0.00 (0.00%)</div>
+        </div>
+        <div class="card" style="border-left: 4px solid #d29922;">
+            <div class="card-title">🔑 X 独立账户</div>
+            <div class="card-value" id="x-val">$0.00</div>
+            <div id="x-pnl" class="pnl-up">$0.00 (0.00%)</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div>
+            <div class="table-controls">
+                <div class="filter-group">
+                    <select id="accountFilter" onchange="updateUI()">
+                        <option value="all">全部账户</option>
+                        <option value="L">L 账户</option>
+                        <option value="X">X 账户</option>
+                    </select>
+                    <select id="categoryFilter" onchange="updateUI()">
+                        <option value="all">全板块</option>
+                        <option value="公共事业">⚡ 公共事业</option>
+                        <option value="科技">💻 科技</option>
+                        <option value="消费">🛍️ 消费</option>
+                        <option value="金融">🏦 金融</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-primary" onclick="openModal()">+ 添加全新证券/基金持仓</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>证券名称</th>
+                        <th>所属账户</th>
+                        <th>行业大类</th>
+                        <th>当前实时价</th>
+                        <th>当前总市值</th>
+                        <th>全局总占比</th>
+                    </tr>
+                </thead>
+                <tbody id="portfolioTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted);">正在初始化资产底座...</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="exportBackup()" style="font-size: 12px; padding: 4px 8px;">导出备份</button>
+                <button onclick="importBackup()" style="font-size: 12px; padding: 4px 8px;">导入恢复</button>
+                <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📑 行业与配置分布</div>
+            <div class="chart-container">
+                <canvas id="allocationChart"></canvas>
+            </div>
+            <ul class="sector-list">
+                <li class="sector-item"><span>⚡ 公共事业</span><b id="cat-utility">$0.00 (0%)</b></li>
+                <li class="sector-item"><span>💻 科技板块</span><b id="cat-tech">$0.00 (0%)</b></li>
+                <li class="sector-item"><span>🛍️ 消费大类</span><b id="cat-consumer">$0.00 (0%)</b></li>
+                <li class="sector-item"><span>🏦 金融重仓</span><b id="cat-finance">$0.00 (0%)</b></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="font-size: 18px;">编辑证券头寸</h3>
+            <button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>证券代码 (大写英文如 AAPL)</label>
+            <input type="text" id="secCode" placeholder="AAPL" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group">
+            <label>公司/标的名称</label>
+            <input type="text" id="secName" placeholder="苹果公司">
+        </div>
+        <div class="form-group">
+            <label>划分所属账户</label>
+            <select id="secAccount">
+                <option value="L">L 账户</option>
+                <option value="X">X 账户</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>划分行业大类</label>
+            <select id="secCategory">
+                <option value="公共事业">⚡ 公共事业</option>
+                <option value="科技">💻 科技</option>
+                <option value="消费">🛍️ 消费</option>
+                <option value="金融">🏦 金融</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>持仓数量 (股)</label>
+            <input type="number" id="secQuantity" placeholder="100" step="any">
+        </div>
+        <div class="form-group">
+            <label>买入均价成本 ($)</label>
+            <input type="number" id="secCost" placeholder="150.00" step="any">
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal()">放弃</button>
+            <button class="btn-primary" onclick="savePosition()">录入系统</button>
+        </div>
+    </div>
+</div>
+
+<script>
 // 全局配置：你的谷歌表格 API 桥梁地址
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
 
-// 1. 初始化全局资产数据（优先从 Google Sheet 异步加载，本地 localStorage 作为备用缓存）
 let portfolio = [];
+let livePriceCache = {};
 
-// 2. 初始化实时行情长连接 (你网页自带的行情逻辑)
-const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker');
-ws.onopen = () => {
-    const statusEl = document.getElementById('ws-status');
-    if (statusEl) statusEl.innerText = '● 0延迟实时行情通道已建立连通';
-};
+// 1. 全自动全网捕捉美股实时行情（对接 Yahoo 金融公共中继接口）
+async function fetchLivePrice(code) {
+    // 1分钟内频繁刷新则使用缓存，保护接口
+    if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
+        return livePriceCache[code].price;
+    }
+    try {
+        // 使用针对跨域请求优化的金融镜像源获取真实实时数据
+        let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${code}`);
+        let json = await res.json();
+        let price = json.chart.result[0].meta.regularMarketPrice;
+        if (price && !isNaN(price)) {
+            livePriceCache[code] = { price: price, time: Date.now() };
+            return price;
+        }
+        return null;
+    } catch (e) {
+        console.warn(`无法实时捕捉 ${code} 行情，将起用表格备用价.`);
+        return null;
+    }
+}
 
-// 3. 从 Google Sheet 获取持仓数据并渲染
+// 2. 从 Google Sheet 获取底层持仓矩阵
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
-    if (statusEl) statusEl.innerText = '⏳ 正在从 Google Sheet 同步资产矩阵...';
+    if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
 
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
-        .then(data => {
-            console.log("成功从 Google Sheet 同步数据:", data);
-            
-            // 将谷歌表格的字段结构映射转换为你网页原本支持的字段结构
+        .then(async (data) => {
+            console.log("Sheet加载成功:", data);
             portfolio = data.map(item => ({
                 code: item.code,
                 name: item.name,
                 account: item.account,
                 category: item.category,
                 quantity: parseFloat(item.quantity) || 0,
-                price: parseFloat(item.cost) || 0 // 对应网页原本的“买入均价”成本
+                costPrice: parseFloat(item.cost) || 0,
+                sheetPrice: parseFloat(item.currentPrice) || 0
             }));
 
-            // 同步备份到本地缓存，防止谷歌接口异常时网页变空
             localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
-            
-            if (statusEl) statusEl.innerText = '● 0延迟实时行情通道已建立连通 (数据已与Google Sheet同步)';
-            
-            // 触发你网页自带的刷新渲染机制
-            updateUI();
+            if (statusEl) statusEl.innerText = '● 实时行情流连接成功 (已与谷歌表格同步)';
+            await updateUI();
         })
         .catch(err => {
-            console.error("无法读取谷歌表格数据，启用本地缓存:", err);
-            if (statusEl) statusEl.innerText = '⚠️ 谷歌同步失败，已载入本地离线缓存';
-            // 降级读取本地缓存
+            console.error("同步故障，载入本地缓存:", err);
+            if (statusEl) statusEl.innerText = '⚠️ 谷歌同步异常，已启用离线缓存';
             const localData = localStorage.getItem('sceok_portfolio');
             if (localData) {
                 portfolio = JSON.parse(localData);
@@ -51,82 +356,63 @@ function loadPortfolioFromGoogleSheet() {
         });
 }
 
-// 4. 页面首次加载时自动触发同步
+// 首次打开自动运行
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 5. 核心：计算与界面更新逻辑 (保留并优化你原本的矩阵计算公式)
-function updateUI() {
+// 3. 计算、渲染全景资产仪表盘
+async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
     const currentCategoryFilter = document.getElementById('categoryFilter').value;
 
-    let totalValue = 0;
-    let totalCost = 0;
+    let totalValue = 0; let totalCost = 0;
     let lValue = 0; let lCost = 0;
     let xValue = 0; let xCost = 0;
-
     let catValues = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
 
     const tbody = document.getElementById('portfolioTableBody');
-    tbody.innerHTML = '';
-
-    portfolio.forEach(item => {
-        // 你网页原本写死的实时价格映射逻辑
-        let livePrice = item.price; 
-        if(item.code === 'AAPL') livePrice = 307.34;
-        if(item.code === 'TSLA') livePrice = 391.00;
-        if(item.code === 'NVDA') livePrice = 205.10;
-        if(item.code === 'MSFT') livePrice = 416.67;
-        if(item.code === 'META') livePrice = 593.00;
-        if(item.code === 'GOOGL') livePrice = 368.53;
-        if(item.code === 'AMZN') livePrice = 246.03;
-        if(item.code === 'AES') livePrice = 14.67;
-        if(item.code === 'AEP') livePrice = 129.14;
-        if(item.code === 'SOFI') livePrice = 16.03;
-        if(item.code === 'C') livePrice = 132.47;
-        if(item.code === 'GE') livePrice = 328.00;
-        if(item.code === 'IBKR') livePrice = 84.40;
-        if(item.code === 'PFE') livePrice = 26.04;
-        if(item.code === 'PM') livePrice = 178.29;
-        if(item.code === 'BRK.B') livePrice = 488.13;
-        if(item.code === 'CVX') livePrice = 187.31;
-        if(item.code === 'DUK') livePrice = 124.22;
-        if(item.code === 'MRK') livePrice = 120.79;
-        if(item.code === 'NGG') livePrice = 81.86;
+    
+    // 并发捕捉全盘最新实时行情
+    const renderDataPromises = portfolio.map(async (item) => {
+        let fetchedPrice = await fetchLivePrice(item.code);
+        // 核心优先权判定：1. 网络最新价 -> 2. 谷歌表格C列填写的价格 -> 3. 买入成本保底
+        let livePrice = fetchedPrice || item.sheetPrice || item.costPrice;
 
         const currentVal = livePrice * item.quantity;
-        const costVal = item.price * item.quantity;
+        const costVal = item.costPrice * item.quantity;
 
-        // 全局资产大统一汇总累加
         totalValue += currentVal;
         totalCost += costVal;
 
-        // 独立账户路由累加
-        if(item.account === 'L') { lValue += currentVal; lCost += costVal; }
-        if(item.account === 'X') { xValue += currentVal; xCost += costVal; }
+        if (item.account === 'L') { lValue += currentVal; lCost += costVal; }
+        if (item.account === 'X') { xValue += currentVal; xCost += costVal; }
 
-        // 四大核心板块集中度累加
-        if(catValues.hasOwnProperty(item.category)) {
+        if (catValues.hasOwnProperty(item.category)) {
             catValues[item.category] += currentVal;
         }
 
-        // 过滤筛选联动
-        if(currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return;
-        if(currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return;
+        if (currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return null;
+        if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return null;
 
-        // 动态渲染表格行
+        return { ...item, livePrice, currentVal };
+    });
+
+    const displayItems = (await Promise.all(renderDataPromises)).filter(Boolean);
+    tbody.innerHTML = '';
+
+    displayItems.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><b>${item.code}</b><br><small style="color:#888">${item.name}</small></td>
-            <td><span class="badge badge-${item.account === 'L' ? 'l' : 'x'}">${item.account} 账户</span></td>
+            <td><b>${item.code}</b><br><small style="color:var(--text-muted)">${item.name}</small></td>
+            <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
             <td>${item.category}</td>
-            <td>$${livePrice.toFixed(2)}</td>
-            <td>$${currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td style="color: var(--primary); font-weight:600;">$${item.livePrice.toFixed(2)}</td>
+            <td>$${item.currentVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td id="ratio-${item.code}">0.00%</td>
         `;
         tbody.appendChild(tr);
     });
 
-    // 计算汇总比率与看板数据渲染
+    // 计算回填各项大盘汇总数值
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -145,38 +431,19 @@ function updateUI() {
     document.getElementById('x-pnl').innerText = `$${xProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${xRate.toFixed(2)}%)`;
     document.getElementById('x-pnl').className = xProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    // 渲染四大行业板块资产集中度
-    for(let cat in catValues){
+    // 刷新行业板块比率
+    for (let cat in catValues) {
         const val = catValues[cat];
         const pct = totalValue > 0 ? (val / totalValue * 100) : 0;
-        let id = '';
-        if(cat==='公共事业') id='cat-utility';
-        if(cat==='科技') id='cat-tech';
-        if(cat==='消费') id='cat-consumer';
-        if(cat==='金融') id='cat-finance';
-        if(id) {
-            document.getElementById(id).innerText = `$${val.toLocaleString(undefined,{maximumFractionDigits:2})} (${pct.toFixed(1)}%)`;
-        }
+        let id = cat === '公共事业' ? 'cat-utility' : cat === '科技' ? 'cat-tech' : cat === '消费' ? 'cat-consumer' : cat === '金融' ? 'cat-finance' : null;
+        if (id) document.getElementById(id).innerText = `$${val.toLocaleString(undefined,{maximumFractionDigits:2})} (${pct.toFixed(1)}%)`;
     }
 
-    // 动态回填全局总占比
-    portfolio.forEach(item => {
-        let livePrice = item.price;
-        // 使用与上面相同的写死价格进行占比精确计算
-        if(item.code === 'AAPL') livePrice = 307.34; if(item.code === 'TSLA') livePrice = 391.00;
-        if(item.code === 'NVDA') livePrice = 205.10; if(item.code === 'MSFT') livePrice = 416.67;
-        if(item.code === 'META') livePrice = 593.00; if(item.code === 'GOOGL') livePrice = 368.53;
-        if(item.code === 'AMZN') livePrice = 246.03; if(item.code === 'AES') livePrice = 14.67;
-        if(item.code === 'AEP') livePrice = 129.14; if(item.code === 'SOFI') livePrice = 16.03;
-        if(item.code === 'C') livePrice = 132.47; if(item.code === 'GE') livePrice = 328.00;
-        if(item.code === 'IBKR') livePrice = 84.40; if(item.code === 'PFE') livePrice = 26.04;
-        if(item.code === 'PM') livePrice = 178.29; if(item.code === 'BRK.B') livePrice = 488.13;
-        if(item.code === 'CVX') livePrice = 187.31; if(item.code === 'DUK') livePrice = 124.22;
-        if(item.code === 'MRK') livePrice = 120.79; if(item.code === 'NGG') livePrice = 81.86;
-        
+    // 回填全局占比
+    displayItems.forEach(item => {
         const el = document.getElementById(`ratio-${item.code}`);
-        if(el) {
-            const pct = totalValue > 0 ? ((livePrice * item.quantity) / totalValue * 100) : 0;
+        if (el) {
+            const pct = totalValue > 0 ? (item.currentVal / totalValue * 100) : 0;
             el.innerText = pct.toFixed(2) + '%';
         }
     });
@@ -184,7 +451,7 @@ function updateUI() {
     updateCharts(catValues);
 }
 
-// 6. 处理网页弹窗“录入系统”：直接远程写入 Google Sheet 
+// 4. 远程隔空写入数据到 Google 表格
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
@@ -193,71 +460,56 @@ function savePosition() {
     const quantity = parseFloat(document.getElementById('secQuantity').value);
     const cost = parseFloat(document.getElementById('secCost').value);
 
-    if(!code || !name || isNaN(quantity) || isNaN(cost)) {
-        alert('请完整填写有效的证券持仓核心数据！');
-        return;
+    if (!code || !name || isNaN(quantity) || isNaN(cost)) {
+        alert('请完整填写表格数据！'); return;
     }
 
-    // 按钮显示正在写入状态，防止重复点击
     const btn = document.querySelector('.modal-footer .btn-primary');
-    const originalText = btn.innerText;
-    btn.innerText = '正在同步写入云端表格...';
-    btn.disabled = true;
+    btn.innerText = '正在隔空写代表格...'; btn.disabled = true;
 
-    // 构造发送给 Google Sheet 后端 API 的标准 JSON 对象
-    const newAsset = {
-        code: code,
-        name: name,
-        currentPrice: "", // 留给谷歌表格或网页实时覆盖
-        account: account,
-        category: category,
-        quantity: quantity,
-        cost: cost
-    };
+    const newAsset = { code, name, currentPrice: "", account, category, quantity, cost };
 
     fetch(GOOGLE_API_URL, {
         method: 'POST',
-        redirect: 'follow', // 必须遵循 Google Apps Script 安全重定向规则
+        redirect: 'follow',
         body: JSON.stringify(newAsset)
     })
     .then(res => res.json())
     .then(result => {
-        if(result.status === "success") {
-            alert(`【同步成功】证券 ${code} 已追加写入您的 Google 表格！`);
+        if (result.status === "success") {
+            alert(`【同步成功】资产 ${code} 已全自动追加录入 Google 表格！`);
             closeModal();
-            // 重新拉取最新的 Google Sheet 数据刷新网页看板
             loadPortfolioFromGoogleSheet();
         } else {
-            alert('写入失败: ' + result.message);
+            alert('写入云端表格失败: ' + result.message);
         }
     })
     .catch(err => {
-        console.error('API请求失败:', err);
-        alert('网络错误，无法连接到 Google Sheet。');
+        alert('网络断开，无法连通 Google 表格中心！');
     })
     .finally(() => {
-        btn.innerText = originalText;
-        btn.disabled = false;
+        btn.innerText = '录入系统'; btn.disabled = false;
     });
 }
 
-// 7. 弹窗控制逻辑 (保持原本网页的行为)
+// 定时任务：每 60 秒在后台全自动重构刷新最新价格流
+setInterval(updateUI, 60000);
+
+// 模态窗组件
 function openModal() { document.getElementById('editModal').style.display = 'block'; }
 function closeModal() {
     document.getElementById('editModal').style.display = 'none';
-    document.getElementById('secCode').value = '';
-    document.getElementById('secName').value = '';
-    document.getElementById('secQuantity').value = '';
-    document.getElementById('secCost').value = '';
+    document.getElementById('secCode').value = ''; document.getElementById('secName').value = '';
+    document.getElementById('secQuantity').value = ''; document.getElementById('secCost').value = '';
 }
 
-// 8. 图表刷新逻辑 (保留你原本的渲染机制)
+// Chart.js 甜甜圈图表刷新逻辑
 let chartInstance = null;
 function updateCharts(catValues) {
     const ctx = document.getElementById('allocationChart').getContext('2d');
     const labels = Object.keys(catValues);
     const data = Object.values(catValues);
-    if(chartInstance) {
+    if (chartInstance) {
         chartInstance.data.labels = labels;
         chartInstance.data.datasets[0].data = data;
         chartInstance.update();
@@ -266,40 +518,35 @@ function updateCharts(catValues) {
             type: 'doughnut',
             data: {
                 labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545']
-                }]
+                datasets: [{ data: data, backgroundColor: ['#58a6ff', '#2ea44f', '#d29922', '#da3633'] }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
 }
 
-// 9. 数据控制台备份与恢复逻辑 (依旧保留本地控制)
+// 数据控制台辅助逻辑
 function exportBackup() {
     const blob = new Blob([JSON.stringify(portfolio, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = `portfolio_backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
 }
 function importBackup() { document.getElementById('importFile').click(); }
 function handleImport(event) {
-    const file = event.target.files[0];
-    if(!file) return;
+    const file = event.target.files[0]; if(!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
             if(Array.isArray(data)) {
-                portfolio = data;
-                localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
-                updateUI();
-                alert('本地数据导入成功，如需永久同步请记得在 Google Sheet 同步更新！');
+                portfolio = data; updateUI(); alert('本地数据导入成功，如需永久储存请确保 Google 表格同步！');
             }
-        } catch(err) { alert('文件格式不正确！'); }
+        } catch(err) { alert('备份文件损坏！'); }
     };
     reader.readAsText(file);
 }
+</script>
+</body>
+</html>
