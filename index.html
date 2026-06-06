@@ -127,6 +127,25 @@
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
         
+        /* 超链接高亮样式 */
+        .stock-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .stock-link:hover {
+            text-decoration: underline;
+        }
+        .profile-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .profile-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
         /* 弹窗样式 */
         .modal {
             display: none;
@@ -211,7 +230,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>证券名称</th>
+                        <th>证券名称 (点代码查SEC / 点名称看简介)</th>
                         <th>所属账户</th>
                         <th>行业大类</th>
                         <th>当前实时价</th>
@@ -300,14 +319,12 @@ const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9I
 let portfolio = [];
 let livePriceCache = {};
 
-// 1. 全自动全网捕捉美股实时行情（对接 Yahoo 金融公共中继接口）
+// 1. 全自动全网捕捉美股实时行情
 async function fetchLivePrice(code) {
-    // 1分钟内频繁刷新则使用缓存，保护接口
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
         return livePriceCache[code].price;
     }
     try {
-        // 使用针对跨域请求优化的金融镜像源获取真实实时数据
         let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${code}`);
         let json = await res.json();
         let price = json.chart.result[0].meta.regularMarketPrice;
@@ -317,12 +334,12 @@ async function fetchLivePrice(code) {
         }
         return null;
     } catch (e) {
-        console.warn(`无法实时捕捉 ${code} 行情，将起用表格备用价.`);
+        console.warn(`无法实时捕捉 ${code} 行情，将启用表格备用价.`);
         return null;
     }
 }
 
-// 2. 从 Google Sheet 获取底层持仓矩阵
+// 2. 从 Google Sheet 获取底层持仓
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
@@ -330,9 +347,8 @@ function loadPortfolioFromGoogleSheet() {
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
-            console.log("Sheet加载成功:", data);
             portfolio = data.map(item => ({
-                code: item.code,
+                code: item.code.toUpperCase().trim(),
                 name: item.name,
                 account: item.account,
                 category: item.category,
@@ -356,7 +372,6 @@ function loadPortfolioFromGoogleSheet() {
         });
 }
 
-// 首次打开自动运行
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
 // 3. 计算、渲染全景资产仪表盘
@@ -371,10 +386,8 @@ async function updateUI() {
 
     const tbody = document.getElementById('portfolioTableBody');
     
-    // 并发捕捉全盘最新实时行情
     const renderDataPromises = portfolio.map(async (item) => {
         let fetchedPrice = await fetchLivePrice(item.code);
-        // 核心优先权判定：1. 网络最新价 -> 2. 谷歌表格C列填写的价格 -> 3. 买入成本保底
         let livePrice = fetchedPrice || item.sheetPrice || item.costPrice;
 
         const currentVal = livePrice * item.quantity;
@@ -400,9 +413,17 @@ async function updateUI() {
     tbody.innerHTML = '';
 
     displayItems.forEach(item => {
+        // 全自动为美股/ETF拼装对应的：1. 雅虎财经公司简介链接 2. 美国 SEC 官方财报检索链接
+        const profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
+        const secUrl = `https://www.sec.gov/edgar/browse/?CIK=${item.code}`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><b>${item.code}</b><br><small style="color:var(--text-muted)">${item.name}</small></td>
+            <td>
+                <a href="${secUrl}" target="_blank" class="stock-link" title="点击打开美国SEC官方财务披露全景检索系统">${item.code}</a>
+                <br>
+                <a href="${profileUrl}" target="_blank" class="profile-link" title="点击查看雅虎财经提供的公司简介与主营业务">${item.name}</a>
+            </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
             <td>${item.category}</td>
             <td style="color: var(--primary); font-weight:600;">$${item.livePrice.toFixed(2)}</td>
@@ -412,7 +433,7 @@ async function updateUI() {
         tbody.appendChild(tr);
     });
 
-    // 计算回填各项大盘汇总数值
+    // 计算回填汇总看板
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -431,7 +452,6 @@ async function updateUI() {
     document.getElementById('x-pnl').innerText = `$${xProfit.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (${xRate.toFixed(2)}%)`;
     document.getElementById('x-pnl').className = xProfit >= 0 ? 'pnl-up' : 'pnl-down';
 
-    // 刷新行业板块比率
     for (let cat in catValues) {
         const val = catValues[cat];
         const pct = totalValue > 0 ? (val / totalValue * 100) : 0;
@@ -439,7 +459,6 @@ async function updateUI() {
         if (id) document.getElementById(id).innerText = `$${val.toLocaleString(undefined,{maximumFractionDigits:2})} (${pct.toFixed(1)}%)`;
     }
 
-    // 回填全局占比
     displayItems.forEach(item => {
         const el = document.getElementById(`ratio-${item.code}`);
         if (el) {
@@ -492,10 +511,9 @@ function savePosition() {
     });
 }
 
-// 定时任务：每 60 秒在后台全自动重构刷新最新价格流
+// 每分钟刷新行情流
 setInterval(updateUI, 60000);
 
-// 模态窗组件
 function openModal() { document.getElementById('editModal').style.display = 'block'; }
 function closeModal() {
     document.getElementById('editModal').style.display = 'none';
@@ -503,7 +521,6 @@ function closeModal() {
     document.getElementById('secQuantity').value = ''; document.getElementById('secCost').value = '';
 }
 
-// Chart.js 甜甜圈图表刷新逻辑
 let chartInstance = null;
 function updateCharts(catValues) {
     const ctx = document.getElementById('allocationChart').getContext('2d');
@@ -525,7 +542,6 @@ function updateCharts(catValues) {
     }
 }
 
-// 数据控制台辅助逻辑
 function exportBackup() {
     const blob = new Blob([JSON.stringify(portfolio, null, 2)], {type: 'application/json'});
     const a = document.createElement('a');
