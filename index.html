@@ -127,22 +127,18 @@
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
         
-        /* 超链接高亮样式 */
-        .stock-link {
+        /* 样式微调：让超链接导航更分明清晰 */
+        .info-links-container {
+            margin-top: 4px;
+            font-size: 12px;
+            display: flex;
+            gap: 12px;
+        }
+        .action-link {
             color: var(--primary);
             text-decoration: none;
-            font-weight: bold;
         }
-        .stock-link:hover {
-            text-decoration: underline;
-        }
-        .profile-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 12px;
-        }
-        .profile-link:hover {
-            color: #fff;
+        .action-link:hover {
             text-decoration: underline;
         }
 
@@ -230,7 +226,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>证券名称 (点代码查SEC / 点名称看简介)</th>
+                        <th>证券信息</th>
                         <th>所属账户</th>
                         <th>行业大类</th>
                         <th>当前实时价</th>
@@ -313,13 +309,12 @@
 </div>
 
 <script>
-// 全局配置：你的谷歌表格 API 桥梁地址
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
 
 let portfolio = [];
 let livePriceCache = {};
 
-// 1. 全自动全网捕捉美股实时行情
+// 1. 全自动抓取美股实时行情
 async function fetchLivePrice(code) {
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
         return livePriceCache[code].price;
@@ -334,12 +329,12 @@ async function fetchLivePrice(code) {
         }
         return null;
     } catch (e) {
-        console.warn(`无法实时捕捉 ${code} 行情，将启用表格备用价.`);
+        console.warn(`无法抓取 ${code} 实时价，启用备用数据.`);
         return null;
     }
 }
 
-// 2. 从 Google Sheet 获取底层持仓
+// 2. 从 Google Sheet 同步
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
@@ -362,7 +357,7 @@ function loadPortfolioFromGoogleSheet() {
             await updateUI();
         })
         .catch(err => {
-            console.error("同步故障，载入本地缓存:", err);
+            console.error("同步故障:", err);
             if (statusEl) statusEl.innerText = '⚠️ 谷歌同步异常，已启用离线缓存';
             const localData = localStorage.getItem('sceok_portfolio');
             if (localData) {
@@ -374,7 +369,7 @@ function loadPortfolioFromGoogleSheet() {
 
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 3. 计算、渲染全景资产仪表盘
+// 3. 计算与渲染 UI 核心层
 async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
     const currentCategoryFilter = document.getElementById('categoryFilter').value;
@@ -413,16 +408,22 @@ async function updateUI() {
     tbody.innerHTML = '';
 
     displayItems.forEach(item => {
-        // 全自动为美股/ETF拼装对应的：1. 雅虎财经公司简介链接 2. 美国 SEC 官方财报检索链接
+        // 去除代码后缀(如 BRK.B 转为 BRK) 用于 SEC 更精准的公司级模糊搜索
+        const cleanCode = item.code.split('.')[0]; 
+        
         const profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
-        const secUrl = `https://www.sec.gov/edgar/browse/?CIK=${item.code}`;
+        // 改用 SEC 官方的高兼容性全局公司检索接口，防止直接输入 CIK 产生 00000000GE Not Found 报错
+        const secUrl = `https://www.sec.gov/edgar/searchedgar/companysearch?companyName=${cleanCode}`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <a href="${secUrl}" target="_blank" class="stock-link" title="点击打开美国SEC官方财务披露全景检索系统">${item.code}</a>
-                <br>
-                <a href="${profileUrl}" target="_blank" class="profile-link" title="点击查看雅虎财经提供的公司简介与主营业务">${item.name}</a>
+                <b style="font-size: 16px;">${item.code}</b><br>
+                <span style="color: var(--text-muted); font-size: 14px;">${item.name}</span>
+                <div class="info-links-container">
+                    <a href="${profileUrl}" target="_blank" class="action-link">📈 公司简介</a>
+                    <a href="${secUrl}" target="_blank" class="action-link">📄 SEC财务报表</a>
+                </div>
             </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
             <td>${item.category}</td>
@@ -433,7 +434,7 @@ async function updateUI() {
         tbody.appendChild(tr);
     });
 
-    // 计算回填汇总看板
+    // 计算汇总看板数据
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -470,23 +471,23 @@ async function updateUI() {
     updateCharts(catValues);
 }
 
-// 4. 远程隔空写入数据到 Google 表格
+// 表格远程添加逻辑
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
     const account = document.getElementById('secAccount').value;
     const category = document.getElementById('secCategory').value;
     const quantity = parseFloat(document.getElementById('secQuantity').value);
-    const cost = parseFloat(document.getElementById('secCost').value);
+    const cost = document.getElementById('secCost').value;
 
-    if (!code || !name || isNaN(quantity) || isNaN(cost)) {
+    if (!code || !name || isNaN(quantity) || !cost) {
         alert('请完整填写表格数据！'); return;
     }
 
     const btn = document.querySelector('.modal-footer .btn-primary');
     btn.innerText = '正在隔空写代表格...'; btn.disabled = true;
 
-    const newAsset = { code, name, currentPrice: "", account, category, quantity, cost };
+    const newAsset = { code, name, currentPrice: "", account, category, quantity, cost: parseFloat(cost) };
 
     fetch(GOOGLE_API_URL, {
         method: 'POST',
@@ -503,15 +504,10 @@ function savePosition() {
             alert('写入云端表格失败: ' + result.message);
         }
     })
-    .catch(err => {
-        alert('网络断开，无法连通 Google 表格中心！');
-    })
-    .finally(() => {
-        btn.innerText = '录入系统'; btn.disabled = false;
-    });
+    .catch(err => { alert('无法连通 Google 表格中心！'); })
+    .finally(() => { btn.innerText = '录入系统'; btn.disabled = false; });
 }
 
-// 每分钟刷新行情流
 setInterval(updateUI, 60000);
 
 function openModal() { document.getElementById('editModal').style.display = 'block'; }
@@ -557,7 +553,7 @@ function handleImport(event) {
         try {
             const data = JSON.parse(e.target.result);
             if(Array.isArray(data)) {
-                portfolio = data; updateUI(); alert('本地数据导入成功，如需永久储存请确保 Google 表格同步！');
+                portfolio = data; updateUI(); alert('本地数据导入成功！');
             }
         } catch(err) { alert('备份文件损坏！'); }
     };
