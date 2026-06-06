@@ -141,7 +141,7 @@
         <div class="main-layout">
             <div>
                 <div class="card"><div class="card-title">⚡ 维度一：板块行业配置分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="categoryChart"></canvas></div><ul class="chart-legend-list" id="categoryLegend"></ul></div></div>
-                <div class="card"><div class="card-title"> advertiser🌐 维度二：全球地域市场分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="marketChart"></canvas></div><ul class="chart-legend-list" id="marketLegend"></ul></div></div>
+                <div class="card"><div class="card-title">🌐 维度二：全球地域市场分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="marketChart"></canvas></div><ul class="chart-legend-list" id="marketLegend"></ul></div></div>
                 <div class="card"><div class="card-title">⚖️ 维度三：独立账户权重分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="accountChart"></canvas></div><ul class="chart-legend-list" id="accountLegend"></ul></div></div>
             </div>
             <div>
@@ -196,6 +196,7 @@
 </div>
 
 <script>
+// 【已对齐】唯一锁定的标准全量 Web 应用程序接入终点
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
 
 let portfolio = [];
@@ -252,7 +253,6 @@ function loadPortfolioFromGoogleSheet() {
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
-            // 解析独立打包的双表数据，做到了绝对格式容错！
             let rawAssets = [];
             let rawFinancials = [];
             
@@ -263,15 +263,22 @@ function loadPortfolioFromGoogleSheet() {
                 rawAssets = data;
             }
 
-            portfolio = rawAssets.map(item => ({
-                code: item.code ? item.code.toUpperCase().trim() : '',
-                name: item.name || '',
-                account: item.account ? item.account.toUpperCase().trim() : '', 
-                category: item.category || '其它',
-                quantity: parseFloat(item.quantity) || 0,
-                costPrice: parseFloat(item.cost) || 0,
-                sheetPrice: parseFloat(item.currentPrice) || 0
-            })).filter(item => item.code !== '');
+            // 【超级容错解耦核心】中英文、大小写表头全自动智能捕获
+            portfolio = rawAssets.map(item => {
+                let qVal = item.quantity || item.Quantity || item.QUANTITY || item["持仓股数"] || item["持仓数量"] || 0;
+                let cVal = item.cost || item.Cost || item.COST || item.costPrice || item["买入成本"] || item["成本价"] || 0;
+                let pVal = item.currentPrice || item.CurrentPrice || item["当前实时价"] || item["实时价"] || 0;
+
+                return {
+                    code: item.code ? item.code.toUpperCase().trim() : '',
+                    name: item.name || '',
+                    account: item.account ? item.account.toUpperCase().trim() : '', 
+                    category: item.category || '其它',
+                    quantity: parseFloat(qVal) || 0,
+                    costPrice: parseFloat(cVal) || 0,
+                    sheetPrice: parseFloat(pVal) || 0
+                };
+            }).filter(item => item.code !== '');
 
             customFinancialDB = {};
             rawFinancials.forEach(item => {
@@ -299,7 +306,6 @@ function loadPortfolioFromGoogleSheet() {
                 }
             });
 
-            // 兜底常用静态样板（无配置财务指标的公司显示默认曲线）
             const fallbackDB = {
                 'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', revUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
                 'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', revUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] }
