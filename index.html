@@ -127,6 +127,18 @@
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
         
+        /* 市场标签独立样式 */
+        .market-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+        .mkt-us { background-color: #0052cc; color: #fff; }
+        .mkt-hk { background-color: #cc0000; color: #fff; }
+        .mkt-cn { background-color: #2ea44f; color: #fff; }
+
         /* 快捷超链接专设排版 */
         .info-links-bar {
             margin-top: 5px;
@@ -212,6 +224,12 @@
                         <option value="L">L 账户</option>
                         <option value="X">X 账户</option>
                     </select>
+                    <select id="marketFilter" onchange="updateUI()">
+                        <option value="all">所有市场 (美/港/A)</option>
+                        <option value="美股">🇺🇸 美股市场</option>
+                        <option value="港股">🇭🇰 港股市场</option>
+                        <option value="A股">🇨🇳 A股市场</option>
+                    </select>
                     <select id="categoryFilter" onchange="updateUI()">
                         <option value="all">全板块</option>
                         <option value="公共事业">⚡ 公共事业</option>
@@ -272,7 +290,7 @@
             <button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button>
         </div>
         <div class="form-group">
-            <label>证券代码 (大写英文如 AAPL)</label>
+            <label>证券代码 (如美股 AAPL / A股 600519 / 港股 00700)</label>
             <input type="text" id="secCode" placeholder="AAPL" style="text-transform: uppercase;">
         </div>
         <div class="form-group">
@@ -300,7 +318,7 @@
             <input type="number" id="secQuantity" placeholder="100" step="any">
         </div>
         <div class="form-group">
-            <label>买入均价成本 ($)</label>
+            <label>买入均价成本</label>
             <input type="number" id="secCost" placeholder="150.00" step="any">
         </div>
         <div class="modal-footer">
@@ -316,13 +334,38 @@ const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9I
 let portfolio = [];
 let livePriceCache = {};
 
-// 1. 行情自动捕捉流
+// 智能市场识别引擎
+function detectMarket(code) {
+    const clean = code.trim().toUpperCase();
+    // 1. 如果纯数字且长度为5位左右，判定为港股
+    if (/^\d{4,5}$/.test(clean)) {
+        return { type: "港股", badgeClass: "mkt-hk", label: "港股" };
+    }
+    // 2. 如果是6位纯数字，或者以SH/SZ结尾/开头，判定为A股
+    if (/^\d{6}$/.test(clean) || clean.includes("SS") || clean.includes("SZ")) {
+        return { type: "A股", badgeClass: "mkt-cn", label: "A股" };
+    }
+    // 3. 其余判定为美股
+    return { type: "美股", badgeClass: "mkt-us", label: "美股" };
+}
+
+// 三地全网多源实时行情流抓取
 async function fetchLivePrice(code) {
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
         return livePriceCache[code].price;
     }
+    const market = detectMarket(code);
+    let yahooSymbol = code;
+    
+    // 为雅虎财经转换异构市场的格式代码
+    if (market.type === "港股" && !code.includes(".")) {
+        yahooSymbol = code.padStart(5, '0') + ".HK";
+    } else if (market.type === "A股" && /^\d{6}$/.test(code)) {
+        yahooSymbol = code.startsWith("6") ? code + ".SS" : code + ".SZ";
+    }
+
     try {
-        let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${code}`);
+        let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`);
         let json = await res.json();
         let price = json.chart.result[0].meta.regularMarketPrice;
         if (price && !isNaN(price)) {
@@ -335,7 +378,7 @@ async function fetchLivePrice(code) {
     }
 }
 
-// 2. 从 Google Sheet 同步
+// 从 Google Sheet 同步底层
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     if (statusEl) statusEl.innerText = '⏳ 正在同步 Google Sheet 数据矩阵...';
@@ -354,11 +397,11 @@ function loadPortfolioFromGoogleSheet() {
             }));
 
             localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
-            if (statusEl) statusEl.innerText = '● 实时行情流连接成功 (已与谷歌表格同步)';
+            if (statusEl) statusEl.innerText = '● 全球多源实时行情流连接成功 (已同步)';
             await updateUI();
         })
         .catch(err => {
-            console.error("同步故障:", err);
+            console.error("同步异常:", err);
             if (statusEl) statusEl.innerText = '⚠️ 谷歌同步异常，已启用离线缓存';
             const localData = localStorage.getItem('sceok_portfolio');
             if (localData) {
@@ -370,9 +413,10 @@ function loadPortfolioFromGoogleSheet() {
 
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 3. 核心计算与 UI 渲染
+// 核心计算与多维渲染过滤
 async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
+    const currentMarketFilter = document.getElementById('marketFilter').value;
     const currentCategoryFilter = document.getElementById('categoryFilter').value;
 
     let totalValue = 0; let totalCost = 0;
@@ -399,31 +443,51 @@ async function updateUI() {
             catValues[item.category] += currentVal;
         }
 
+        const marketInfo = detectMarket(item.code);
+
+        // 多维联合条件过滤
         if (currentAccountFilter !== 'all' && item.account !== currentAccountFilter) return null;
+        if (currentMarketFilter !== 'all' && marketInfo.type !== currentMarketFilter) return null;
         if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return null;
 
-        return { ...item, livePrice, currentVal };
+        return { ...item, livePrice, currentVal, marketInfo };
     });
 
     const displayItems = (await Promise.all(renderDataPromises)).filter(Boolean);
     tbody.innerHTML = '';
 
     displayItems.forEach(item => {
-        // 核心修正：清洗特殊股票代码（例如把 BRK.B 处理成 BRK 去匹配 SEC 接口）
+        let profileUrl = "";
+        let reportUrl = "";
         const cleanTicker = item.code.split('.')[0];
 
-        // 拼装高兼容性的直达跳转链接
-        const profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
-        const secUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}&action=getcompany`;
+        // 核心跳转中枢：根据不同市场自适应拼装简介与官方信息披露渠道链接
+        if (item.marketInfo.type === "美股") {
+            profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
+            reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}&action=getcompany`;
+        } else if (item.marketInfo.type === "港股") {
+            const formattedHK = item.code.padStart(5, '0');
+            profileUrl = `https://hk.finance.yahoo.com/quote/${formattedHK}.HK/profile`;
+            reportUrl = `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&category=0&market=sehk&stockCode=${formattedHK}`;
+        } else if (item.marketInfo.type === "A股") {
+            profileUrl = `https://finance.sina.com.cn/realstock/company/${item.code.toLowerCase()}/nc.shtml`;
+            reportUrl = `http://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&searchkey=${cleanTicker}`;
+        }
+
+        // 自适应财报文案名称展示
+        const reportLabel = item.marketInfo.type === "美股" ? "📄 SEC财务报表" : item.marketInfo.type === "港股" ? "📄 HKEX官方披露" : "📄 巨潮权威财报";
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <b style="font-size: 16px; color:#fff;">${item.code}</b><br>
+                <div style="display:flex; align-items:center;">
+                    <b style="font-size: 16px; color:#fff;">${item.code}</b>
+                    <span class="market-badge ${item.marketInfo.badgeClass}">${item.marketInfo.label}</span>
+                </div>
                 <span style="color: var(--text-muted); font-size: 14px;">${item.name}</span>
                 <div class="info-links-bar">
                     <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介</a>
-                    <a href="${secUrl}" target="_blank" class="action-btn-link">📄 SEC财务报表</a>
+                    <a href="${reportUrl}" target="_blank" class="action-btn-link">${reportLabel}</a>
                 </div>
             </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
@@ -435,7 +499,7 @@ async function updateUI() {
         tbody.appendChild(tr);
     });
 
-    // 大盘看板数值回填汇总
+    // 大盘回填汇总
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -472,6 +536,7 @@ async function updateUI() {
     updateCharts(catValues);
 }
 
+// 远程写入谷歌表格
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
@@ -481,11 +546,11 @@ function savePosition() {
     const cost = document.getElementById('secCost').value;
 
     if (!code || !name || isNaN(quantity) || !cost) {
-        alert('请完整填写表格数据！'); return;
+        alert('请完整填写数据！'); return;
     }
 
     const btn = document.querySelector('.modal-footer .btn-primary');
-    btn.innerText = '正在隔空写代表格...'; btn.disabled = true;
+    btn.innerText = '正在隔空写入云端表格...'; btn.disabled = true;
 
     const newAsset = { code, name, currentPrice: "", account, category, quantity, cost: parseFloat(cost) };
 
@@ -497,14 +562,14 @@ function savePosition() {
     .then(res => res.json())
     .then(result => {
         if (result.status === "success") {
-            alert(`【同步成功】资产 ${code} 已全自动追加录入 Google 表格！`);
+            alert(`【同步成功】资产 ${code} 已存入您的 Google Sheet！`);
             closeModal();
             loadPortfolioFromGoogleSheet();
         } else {
-            alert('写入云端表格失败: ' + result.message);
+            alert('写入失败: ' + result.message);
         }
     })
-    .catch(err => { alert('无法连通 Google 表格中心！'); })
+    .catch(err => { alert('无法连通 Google 表格集群中心！'); })
     .finally(() => { btn.innerText = '录入系统'; btn.disabled = false; });
 }
 
@@ -552,10 +617,8 @@ function handleImport(event) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if(Array.isArray(data)) {
-                portfolio = data; updateUI(); alert('本地数据导入成功！');
-            }
-        } catch(err) { alert('备份文件损坏！'); }
+            if(Array.isArray(data)) { portfolio = data; updateUI(); alert('本地备份导入成功！'); }
+        } catch(err) { alert('文件格式损坏！'); }
     };
     reader.readAsText(file);
 }
