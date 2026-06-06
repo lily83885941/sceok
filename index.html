@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的持仓监控 - PORTFOLIO</title>
+    <style>
+        :root { --bg-color: #0b111e; --card-bg: #161e2e; --text-color: #f5f6fa; --accent: #00f2fe; --up: #ff4d4f; --down: #2ecc71; --border: #242f47; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-color); padding: 16px; max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+        .header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .title-main { font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+        .mv-label { font-size: 12px; color: #6c7a9c; text-align: right; }
+        .mv-value { font-size: 26px; font-weight: bold; }
+        .stats-grid { display: flex; background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; gap: 10px; }
+        .stat-item { flex: 1; text-align: center; }
+        .stat-label { font-size: 11px; color: #6c7a9c; margin-bottom: 5px; }
+        .stat-val { font-size: 16px; font-weight: bold; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        .tab-item { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #6c7a9c; font-size: 14px; }
+        .tab-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: bold; }
+        .sync-banner { background: rgba(0, 242, 254, 0.05); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .sync-text { font-size: 11px; color: #8fa0c4; line-height: 1.4; }
+        .btn-sm { background: #212e4a; color: #a5b7da; border: none; padding: 6px 12px; border-radius: 5px; font-size: 11px; cursor: pointer; margin-left: 5px; }
+        .btn-add { width: 100%; background: var(--accent); color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; margin-bottom: 15px; cursor: pointer; font-size: 15px; }
+        .stock-card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid transparent; }
+        .stock-card.alert { border-color: var(--up); animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { box-shadow: 0 0 0px rgba(255,77,79,0); } 50% { box-shadow: 0 0 15px rgba(255,77,79,0.3); } }
+        .card-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .code { color: var(--accent); font-weight: bold; margin-right: 8px; font-family: monospace; }
+        .name { font-weight: bold; }
+        .change { font-weight: bold; }
+        .data-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        .data-cell { text-align: center; }
+        .lbl { font-size: 10px; color: #536380; margin-bottom: 3px; }
+        .val { font-size: 13px; }
+        .card-ft { margin-top: 10px; padding-top: 8px; border-top: 1px solid #1c273d; display: flex; justify-content: space-between; font-size: 11px; color: #6c7a9c; }
+        .up { color: var(--up); } .down { color: var(--down); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background: var(--card-bg); border-radius: 15px; padding: 20px; width: 90%; max-width: 400px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; color: #8fa0c4; margin-bottom: 5px; }
+        .form-group input { width: 100%; background: #0b111e; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-confirm { background: var(--accent); color: #000; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-cancel { background: #212e4a; color: #a5b7da; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; }
+        .section { display: none; } .section.active { display: block; }
+        .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .report-table th { text-align: left; color: #6c7a9c; padding: 10px; border-bottom: 1px solid var(--border); }
+        .report-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div><div class="title-main">PORTFOLIO</div><div style="font-size:10px;color:#8da2fb">实时行情及财报监控</div></div>
+        <div class="mv-box"><div class="mv-label">资产总市值</div><div class="mv-value" id="total-mv">¥0.00</div></div>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-item"><div class="stat-label">总盈亏</div><div class="stat-val" id="total-profit">¥0.00</div></div>
+        <div class="stat-item"><div class="stat-label">收益率</div><div class="stat-val" id="total-ratio">0.00%</div></div>
+        <div class="stat-item"><div class="stat-label">持仓数</div><div class="stat-val" id="count">0</div></div>
+    </div>
+    <div class="tabs">
+        <div class="tab-item active" onclick="switchTab(event, 'holding')">📊 持仓</div>
+        <div class="tab-item" onclick="switchTab(event, 'report')">📑 财报</div>
+        <div class="tab-item" onclick="switchTab(event, 'dist')">🧱 分布</div>
+    </div>
+    <div class="sync-banner">
+        <div class="sync-text">数据存于浏览器。换电脑请<br>点导出复制，新电脑点导入粘贴。</div>
+        <div><button class="btn-sm" onclick="exportData()">导出</button><button class="btn-sm" onclick="importData()">导入</button></div>
+    </div>
+    <div id="holding" class="section active">
+        <button class="btn-add" onclick="openModal()">+ 添加股票持仓</button>
+        <div id="list"></div>
+    </div>
+    <div id="report" class="section">
+        <table class="report-table"><thead><tr><th>股票</th><th>PE</th><th>ROE</th><th>营收增幅</th></tr></thead><tbody id="report-body"></tbody></table>
+    </div>
+    <div id="dist" class="section">
+        <table class="report-table"><thead><tr><th>股票</th><th>当前市值</th><th>占比</th></tr></thead><tbody id="dist-body"></tbody></table>
+    </div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px; color:var(--accent)">编辑持仓</h3>
+            <input type="hidden" id="edit-idx">
+            <div class="form-group"><label>股票代码 (6位数字)</label><input type="text" id="f-code"></div>
+            <div class="form-group"><label>股票名称</label><input type="text" id="f-name"></div>
+            <div class="form-group"><label>持仓数量</label><input type="number" id="f-qty"></div>
+            <div class="form-group"><label>成本价</label><input type="number" step="0.01" id="f-cost"></div>
+            <div class="form-group"><label>高价预警</label><input type="number" step="0.01" id="f-high"></div>
+            <div class="form-group"><label>低价预警</label><input type="number" step="0.01" id="f-low"></div>
+            <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">取消</button><button class="btn-confirm" onclick="save()">保存</button></div>
+        </div>
+    </div>
+    <script>
+        let stocks = JSON.parse(localStorage.getItem('my_stocks') || '[]');
+        function getMock(code) {
+            let b = 100, pe = "15", roe = "12%", g = "+5%";
+            if(code.startsWith('600519')){ b=1750; pe="28"; roe="29%"; g="+18%"; }
+            else if(code.startsWith('000001')){ b=11.5; pe="4.5"; roe="10%"; g="+2%"; }
+            let p = b * (1 + (Math.random()-0.48)/100);
+            return { p: p.toFixed(2), c: ((Math.random()-0.48)*2).toFixed(2), pe, roe, g };
+        }
+        function render() {
+            let mv=0, cv=0;
+            const list=document.getElementById('list'), rb=document.getElementById('report-body'), db=document.getElementById('dist-body');
+            list.innerHTML=''; rb.innerHTML=''; db.innerHTML='';
+            stocks.forEach((s, i) => {
+                let m = getMock(s.code), curMv = s.qty * m.p, costMv = s.qty * s.cost, pft = curMv - costMv;
+                mv += curMv; cv += costMv;
+                let isAlert = (s.high && m.p >= s.high) || (s.low && m.p <= s.low);
+                list.innerHTML += `<div class="stock-card ${isAlert?'alert':''}">
+                    <div class="card-top"><div><span class="code">${s.code}</span><span class="name">${s.name}</span></div><div class="change ${m.c>=0?'up':'down'}">${m.c>=0?'▲':'▼'}${Math.abs(m.c)}%</div></div>
+                    <div class="data-grid">
+                        <div class="data-cell"><div class="lbl">持仓</div><div class="val">${s.qty}</div></div>
+                        <div class="data-cell"><div class="lbl">现价</div><div class="val" style="color:var(--accent)">${m.p}</div></div>
+                        <div class="data-cell"><div class="lbl">盈亏</div><div class="val ${pft>=0?'up':'down'}">${(pft/10000).toFixed(2)}万</div></div>
+                        <div class="data-cell"><div class="lbl">市值</div><div class="val">${(curMv/10000).toFixed(2)}万</div></div>
+                    </div>
+                    <div class="card-ft"><div>${isAlert?'⚠️ 价格触发预警':'状态: 正常'}</div><div><span onclick="edit(${i})">编辑</span> <span onclick="del(${i})" style="color:#ff4d4f;margin-left:10px">删除</span></div></div>
+                </div>`;
+                rb.innerHTML += `<tr><td>${s.name}</td><td>${m.pe}</td><td>${m.roe}</td><td class="up">${m.g}</td></tr>`;
+            });
+            document.getElementById('total-mv').innerText = '¥'+(mv/10000).toFixed(2)+'万';
+            let tp = mv-cv;
+            document.getElementById('total-profit').innerText = (tp>=0?'+':'')+(tp/10000).toFixed(2)+'万';
+            document.getElementById('total-profit').className = 'stat-val '+(tp>=0?'up':'down');
+            document.getElementById('total-ratio').innerText = (cv>0?(tp/cv*100).toFixed(2):'0.00')+'%';
+            document.getElementById('count').innerText = stocks.length;
+            stocks.forEach(s => {
+                let m = getMock(s.code), ratio = mv>0?((s.qty*m.p)/mv*100).toFixed(1):0;
+                db.innerHTML += `<tr><td>${s.name}</td><td>${(s.qty*m.p/10000).toFixed(2)}万</td><td>${ratio}%</td></tr>`;
+            });
+        }
+        function switchTab(e, id) {
+            document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+            e.target.classList.add('active'); document.getElementById(id).classList.add('active');
+            render();
+        }
+        function openModal() { document.getElementById('edit-idx').value=''; document.getElementById('modal').style.display='flex'; }
+        function closeModal() { document.getElementById('modal').style.display='none'; }
+        function edit(i) {
+            const s=stocks[i]; document.getElementById('edit-idx').value=i;
+            document.getElementById('f-code').value=s.code; document.getElementById('f-name').value=s.name;
+            document.getElementById('f-qty').value=s.qty; document.getElementById('f-cost').value=s.cost;
+            document.getElementById('f-high').value=s.high||''; document.getElementById('f-low').value=s.low||'';
+            document.getElementById('modal').style.display='flex';
+        }
+        function save() {
+            let i=document.getElementById('edit-idx').value, data={
+                code: document.getElementById('f-code').value, name: document.getElementById('f-name').value,
+                qty: parseInt(document.getElementById('f-qty').value), cost: parseFloat(document.getElementById('f-cost').value),
+                high: parseFloat(document.getElementById('f-high').value), low: parseFloat(document.getElementById('f-low').value)
+            };
+            if(i==='') stocks.push(data); else stocks[i]=data;
+            localStorage.setItem('my_stocks', JSON.stringify(stocks)); closeModal(); render();
+        }
+        function del(i) { if(confirm('删除?')){ stocks.splice(i,1); localStorage.setItem('my_stocks', JSON.stringify(stocks)); render(); } }
+        function exportData() { navigator.clipboard.writeText(JSON.stringify(stocks)); alert('JSON已复制！发送给别人或存好。'); }
+        function importData() { let d=prompt('粘贴JSON'); if(d){ stocks=JSON.parse(d); localStorage.setItem('my_stocks', JSON.stringify(stocks)); render(); } }
+        setInterval(render, 5000); render();
+    </script>
+</body>
+</html>
