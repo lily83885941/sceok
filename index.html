@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PORTFOLIO KINETIC - 统一资产与云端财务透视系统</title>
+    <title>PORTFOLIO KINETIC - 全球多源统一数据联动旗舰版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -26,39 +26,15 @@
             line-height: 1.5;
         }
         .container { max-width: 1700px; margin: 0 auto; }
-        
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 15px;
-        }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
         h1 { font-size: 22px; font-weight: 600; }
-        
-        .status-badge {
-            background: #1f242c;
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        /* 顶部页面切换 Tabs 导航栏 */
+        .status-badge { background: #1f242c; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 13px; color: var(--text-muted); }
         .tabs-nav { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn {
-            background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-muted);
-            padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;
-        }
+        .tab-btn { background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-muted); padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
         .tab-btn:hover { color: #fff; border-color: #8b949e; }
         .tab-btn.active { background-color: var(--primary); color: #fff; border-color: var(--primary); }
-
         .view-page { display: none; }
         .view-page.active { display: block; }
-        
-        /* 页面一大卡片 */
         .matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .account-btn-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; cursor: pointer; transition: all 0.2s; position: relative; }
         .account-btn-card:hover { transform: translateY(-2px); border-color: #58a6ff; }
@@ -68,10 +44,8 @@
         .card-value { font-size: 28px; font-weight: bold; margin-bottom: 4px; color: #fff; }
         .pnl-up { color: #39d353; font-size: 14px; font-weight: 600; }
         .pnl-down { color: #f85149; font-size: 14px; font-weight: 600; }
-        
         .main-layout { display: grid; grid-template-columns: 1.1fr 2fr; gap: 25px; }
         @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; } }
-        
         .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
         select, input, button { background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 6px; font-size: 13px; outline: none; }
@@ -79,24 +53,19 @@
         button:hover { background-color: #30363d; border-color: #8b949e; }
         .btn-primary { background-color: var(--success); border-color: rgba(240,246,252,0.1); color: #fff; }
         .btn-primary:hover { background-color: #2c8543; }
-        
         table { width: 100%; border-collapse: collapse; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
         th { background-color: #1f242c; font-weight: 600; color: var(--text-muted); }
-        
         .badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; text-transform: uppercase; }
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
-        
         .market-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 6px; }
         .mkt-us { background-color: #0052cc; color: #fff; }
         .mkt-hk { background-color: #cc0000; color: #fff; }
         .mkt-cn { background-color: #2ea44f; color: #fff; }
-
         .info-links-bar { margin-top: 5px; font-size: 11px; display: flex; gap: 12px; }
         .action-btn-link { color: var(--primary); text-decoration: none; }
         .action-btn-link:hover { text-decoration: underline; color: #fff; }
-
         .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .chart-block { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 5px; }
         .chart-wrapper { width: 130px; height: 130px; position: relative; }
@@ -104,11 +73,8 @@
         .legend-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px dashed #21262d; }
         .legend-label { display: flex; align-items: center; gap: 6px; }
         .legend-color-box { width: 10px; height: 10px; border-radius: 2px; }
-
-        /* 页面二样式 */
         .financial-layout { display: grid; grid-template-columns: 360px 1fr; gap: 25px; }
         @media (max-width: 1000px) { .financial-layout { grid-template-columns: 1fr; } }
-
         .sidebar-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; height: fit-content; }
         .company-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
         .company-item { padding: 12px 15px; background: #21262d; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
@@ -116,11 +82,9 @@
         .company-item.active { border-color: var(--primary); background: rgba(88, 166, 255, 0.1); box-shadow: inset 0 0 0 1px var(--primary); }
         .company-name { font-size: 14px; font-weight: 600; color: #fff; }
         .company-ticker { font-size: 11px; background: #30363d; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
-
         .main-panel { display: flex; flex-direction: column; gap: 20px; }
         .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
         .panel-title { font-size: 24px; font-weight: bold; color: #fff; }
-        
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; }
         .metric-box { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: center; }
         .metric-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
@@ -128,11 +92,8 @@
         .metric-sub { font-size: 13px; font-weight: 600; }
         .trend-up { color: #39d353; }
         .trend-down { color: #f85149; }
-
         .chart-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; }
         .chart-container { height: 240px; position: relative; }
-
-        /* 录入弹窗 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 1000; }
         .modal-content { background-color: var(--card-bg); border: 1px solid var(--border-color); width: 90%; max-width: 500px; margin: 10% auto; border-radius: 8px; padding: 25px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -150,7 +111,7 @@
             <h1>PORTFOLIO KINETIC</h1>
             <p style="color: var(--text-muted); font-size: 13px;">全球多源行情大综合监控系统 · 统一数据联动旗舰版</p>
         </div>
-        <div class="status-badge" id="ws-status">⏳ 正在同步 Google Sheet 资产矩阵...</div>
+        <div class="status-badge" id="ws-status">⏳ 正在同步 Google Sheet 资产数据...</div>
     </header>
 
     <div class="tabs-nav">
@@ -179,136 +140,51 @@
 
         <div class="main-layout">
             <div>
-                <div class="card">
-                    <div class="card-title">⚡ 维度一：板块行业配置分析</div>
-                    <div class="chart-block">
-                        <div class="chart-wrapper"><canvas id="categoryChart"></canvas></div>
-                        <ul class="chart-legend-list" id="categoryLegend"></ul>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-title">🌐 维度二：全球地域市场分析</div>
-                    <div class="chart-block">
-                        <div class="chart-wrapper"><canvas id="marketChart"></canvas></div>
-                        <ul class="chart-legend-list" id="marketLegend"></ul>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-title">⚖️ 维度三：独立账户权重分析</div>
-                    <div class="chart-block">
-                        <div class="chart-wrapper"><canvas id="accountChart"></canvas></div>
-                        <ul class="chart-legend-list" id="accountLegend"></ul>
-                    </div>
-                </div>
+                <div class="card"><div class="card-title">⚡ 维度一：板块行业配置分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="categoryChart"></canvas></div><ul class="chart-legend-list" id="categoryLegend"></ul></div></div>
+                <div class="card"><div class="card-title"> advertiser🌐 维度二：全球地域市场分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="marketChart"></canvas></div><ul class="chart-legend-list" id="marketLegend"></ul></div></div>
+                <div class="card"><div class="card-title">⚖️ 维度三：独立账户权重分析</div><div class="chart-block"><div class="chart-wrapper"><canvas id="accountChart"></canvas></div><ul class="chart-legend-list" id="accountLegend"></ul></div></div>
             </div>
-
             <div>
                 <div class="table-controls">
                     <div class="filter-group">
-                        <select id="marketFilter" onchange="updateUI()">
-                            <option value="all">市场过滤: 全部</option>
-                            <option value="美股">🇺🇸 美股</option>
-                            <option value="港股">🇭🇰 港股</option>
-                            <option value="A股">🇨🇳 A股</option>
-                        </select>
-                        <select id="categoryFilter" onchange="updateUI()">
-                            <option value="all">板块过滤: 全部</option>
-                            <option value="公共事业">⚡ 公共事业</option>
-                            <option value="科技">💻 科技</option>
-                            <option value="消费">🛍️ 消费</option>
-                            <option value="金融">🏦 金融</option>
-                        </select>
+                        <select id="marketFilter" onchange="updateUI()"><option value="all">市场过滤: 全部</option><option value="美股">🇺🇸 美股</option><option value="港股">🇭🇰 港股</option><option value="A股">🇨🇳 A股</option></select>
+                        <select id="categoryFilter" onchange="updateUI()"><option value="all">板块过滤: 全部</option><option value="公共事业">⚡ 公共事业</option><option value="科技">💻 科技</option><option value="消费">🛍️ 消费</option><option value="金融">🏦 金融</option></select>
                     </div>
                     <div><button class="btn-primary" onclick="openModal()">+ 录入新头寸</button></div>
                 </div>
-
                 <table>
-                    <thead>
-                        <tr>
-                            <th>证券标的信息</th>
-                            <th>所属账户</th>
-                            <th>行业大类</th>
-                            <th>持仓股数</th>
-                            <th>当前实时价</th>
-                            <th>当前总市值</th>
-                            <th>全局占比</th>
-                        </tr>
-                    </thead>
-                    <tbody id="portfolioTableBody">
-                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">大盘数据加载中...</td></tr>
-                    </tbody>
+                    <thead><tr><th>证券标的信息</th><th>所属账户</th><th>行业大类</th><th>持仓股数</th><th>当前实时价</th><th>当前总市值</th><th>全局占比</th></tr></thead>
+                    <tbody id="portfolioTableBody"><tr><td colspan="7" style="text-align: center; color: var(--text-muted);">大盘数据加载中...</td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <div id="page-financial" class="view-page">
         <div class="financial-layout">
-            <div class="sidebar-card">
-                <div class="card-title">🏢 标的公司财报选择目录</div>
-                <ul class="company-list" id="companyList">
-                    </ul>
-            </div>
-
+            <div class="sidebar-card"><div class="card-title">🏢 标的公司财报选择目录</div><ul class="company-list" id="companyList"></ul></div>
             <div class="main-panel">
-                <div class="panel-header">
-                    <div class="panel-title" id="activeCompanyName">--</div>
-                    <a href="#" id="secReportLink" target="_blank" class="action-btn-link" style="background:#21262d; padding:6px 14px; border:1px solid var(--border-color); border-radius:6px;">📄 检索官方权威财报源</a>
-                </div>
-
+                <div class="panel-header"><div class="panel-title" id="activeCompanyName">--</div><a href="#" id="secReportLink" target="_blank" class="action-btn-link" style="background:#21262d; padding:6px 14px; border:1px solid var(--border-color); border-radius:6px;">📄 检索官方权威财报源</a></div>
                 <div class="metrics-grid">
-                    <div class="metric-box" style="border-left: 3px solid var(--primary);">
-                        <div class="metric-label">最新单季度总主营收入 (Revenue)</div>
-                        <div class="metric-value" id="m-revenue">--</div>
-                    </div>
-                    <div class="metric-box" style="border-left: 3px solid #ff9f43;">
-                        <div class="metric-label">季度归母净利润 (Net Income)</div>
-                        <div class="metric-value" id="m-netincome">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">单季度整体销售毛利率</div>
-                        <div class="metric-value" id="m-grossmargin" style="color: #ff9f43;">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">单季度整体销售净利率</div>
-                        <div class="metric-value" id="m-netmargin" style="color: #4cd137;">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">单季度摊薄后每股收益 (EPS)</div>
-                        <div class="metric-value" id="m-eps" style="color: #f1c40f;">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">每股净资产 (BPS)</div>
-                        <div class="metric-value" id="m-bps">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">滚动/动态市盈率 (PE Ratio)</div>
-                        <div class="metric-value" id="m-pe">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">市净率 (PB Ratio)</div>
-                        <div class="metric-value" id="m-pb">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label">市销率 (PS Ratio)</div>
-                        <div class="metric-value" id="m-ps">--</div>
-                    </div>
+                    <div class="metric-box" style="border-left: 3px solid var(--primary);"><div class="metric-label">最新单季度总主营收入 (Revenue)</div><div class="metric-value" id="m-revenue">--</div></div>
+                    <div class="metric-box" style="border-left: 3px solid #ff9f43;"><div class="metric-label">季度归母净利润 (Net Income)</div><div class="metric-value" id="m-netincome">--</div></div>
+                    <div class="metric-box"><div class="metric-label">单季度整体销售毛利率</div><div class="metric-value" id="m-grossmargin" style="color: #ff9f43;">--</div></div>
+                    <div class="metric-box"><div class="metric-label">单季度整体销售净利率</div><div class="metric-value" id="m-netmargin" style="color: #4cd137;">--</div></div>
+                    <div class="metric-box"><div class="metric-label">单季度摊薄后每股收益 (EPS)</div><div class="metric-value" id="m-eps" style="color: #f1c40f;">--</div></div>
+                    <div class="metric-box"><div class="metric-label">每股净资产 (BPS)</div><div class="metric-value" id="m-bps">--</div></div>
+                    <div class="metric-box"><div class="metric-label">滚动/动态市盈率 (PE Ratio)</div><div class="metric-value" id="m-pe">--</div></div>
+                    <div class="metric-box"><div class="metric-label">市净率 (PB Ratio)</div><div class="metric-value" id="m-pb">--</div></div>
+                    <div class="metric-box"><div class="metric-label">市销率 (PS Ratio)</div><div class="metric-value" id="m-ps">--</div></div>
                 </div>
-
-                <div class="chart-card">
-                    <div class="card-title">📊 连续四个季度销售主营回款及规模扩张走势健康度</div>
-                    <div class="chart-container"><canvas id="trendChart"></canvas></div>
-                </div>
+                <div class="chart-card"><div class="card-title">📊 连续四个季度销售主营回款及规模扩张走势健康度</div><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
             </div>
         </div>
     </div>
-    </div>
+</div>
 
 <div class="modal" id="editModal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3 style="font-size: 16px;">添加全球证券头寸</h3>
-            <button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button>
-        </div>
+        <div class="modal-header"><h3 style="font-size: 16px;">添加全球证券头寸</h3><button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button></div>
         <div class="form-group"><label>证券代码 (如 AAPL)</label><input type="text" id="secCode" style="text-transform: uppercase;"></div>
         <div class="form-group"><label>标的公司名称</label><input type="text" id="secName"></div>
         <div class="form-group"><label>分配所属管理账户</label><select id="secAccount"><option value="L">L 账户</option><option value="X">X 账户</option></select></div>
@@ -376,8 +252,18 @@ function loadPortfolioFromGoogleSheet() {
     fetch(GOOGLE_API_URL)
         .then(response => response.json())
         .then(async (data) => {
-            // ⭐ 核心优化容错：确保哪怕没有 Sheet2 匹配，也绝不丢弃任何 Sheet1 持仓
-            portfolio = data.map(item => ({
+            // 解析独立打包的双表数据，做到了绝对格式容错！
+            let rawAssets = [];
+            let rawFinancials = [];
+            
+            if (data && data.assets) {
+                rawAssets = data.assets;
+                rawFinancials = data.financials || [];
+            } else if (Array.isArray(data)) {
+                rawAssets = data;
+            }
+
+            portfolio = rawAssets.map(item => ({
                 code: item.code ? item.code.toUpperCase().trim() : '',
                 name: item.name || '',
                 account: item.account ? item.account.toUpperCase().trim() : '', 
@@ -387,52 +273,53 @@ function loadPortfolioFromGoogleSheet() {
                 sheetPrice: parseFloat(item.currentPrice) || 0
             })).filter(item => item.code !== '');
 
-            // 解析绑定财务指标
-            data.forEach(item => {
+            customFinancialDB = {};
+            rawFinancials.forEach(item => {
                 if (item.code) {
                     const ticker = item.code.toUpperCase().trim();
-                    if(item.revenue) { // 仅当拥有财报数据时进行组装
-                        customFinancialDB[ticker] = {
-                            name: item.name || ticker,
-                            market: detectMarket(ticker).type,
-                            revenue: item.revenue || '--',
-                            revTrend: item.revTrend || '',
-                            revUp: item.revUp !== undefined ? (item.revUp === true || item.revUp === "TRUE") : true,
-                            netIncome: item.netIncome || '--',
-                            netTrend: item.netTrend || '',
-                            netUp: item.netUp !== undefined ? (item.netUp === true || item.netUp === "TRUE") : true,
-                            grossMargin: item.grossMargin || '--',
-                            netMargin: item.netMargin || '--',
-                            eps: item.eps || '--',
-                            bps: item.bps || '--',
-                            pe: item.pe || '--',
-                            pb: item.pb || '--',
-                            ps: item.ps || '--',
-                            labels: item.chartLabels ? item.chartLabels.split(',') : ['Q1', 'Q2', 'Q3', 'Q4'],
-                            values: item.chartData ? item.chartData.split(',').map(Number) : [10, 20, 15, 30]
-                        };
-                    }
+                    customFinancialDB[ticker] = {
+                        name: item.name || ticker,
+                        market: detectMarket(ticker).type,
+                        revenue: item.revenue || '--',
+                        revTrend: item.revTrend || '',
+                        revUp: item.revUp !== undefined ? (item.revUp === true || item.revUp === "TRUE") : true,
+                        netIncome: item.netIncome || '--',
+                        netTrend: item.netTrend || '',
+                        netUp: item.netUp !== undefined ? (item.netUp === true || item.netUp === "TRUE") : true,
+                        grossMargin: item.grossMargin || '--',
+                        netMargin: item.netMargin || '--',
+                        eps: item.eps || '--',
+                        bps: item.bps || '--',
+                        pe: item.pe || '--',
+                        pb: item.pb || '--',
+                        ps: item.ps || '--',
+                        labels: item.chartLabels ? item.chartLabels.split(',') : ['Q1', 'Q2', 'Q3', 'Q4'],
+                        values: item.chartData ? item.chartData.split(',').map(Number) : [0,0,0,0]
+                    };
                 }
             });
 
-            // 兜底静态样板（避免完全没配时空荡荡）
+            // 兜底常用静态样板（无配置财务指标的公司显示默认曲线）
             const fallbackDB = {
-                'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', netUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
-                'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', netUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] },
-                'AEP': { name: 'American Electric Power (美国电力)', market: '美股', revenue: '5.10B', revTrend: '+ 4.1%', revUp: true, netIncome: '0.63B', netTrend: '+ 5.2%', netUp: true, grossMargin: '38.7%', netMargin: '12.3%', eps: '$1.21', bps: '$48.30', pe: '16.2', pb: '1.9', ps: '2.0', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [4.8, 4.9, 5.2, 5.10] }
+                'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', revUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
+                'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', revUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] }
             };
             Object.keys(fallbackDB).forEach(tk => {
                 if(!customFinancialDB[tk]) { customFinancialDB[tk] = fallbackDB[tk]; }
             });
 
-            localStorage.setItem('sceok_portfolio', JSON.stringify(portfolio));
+            localStorage.setItem('sceok_portfolio_v3', JSON.stringify(portfolio));
+            localStorage.setItem('sceok_fdb_v3', JSON.stringify(customFinancialDB));
             statusEl.innerText = '● 全球资产与财务云端同步成功';
             await updateUI();
         })
         .catch(err => {
-            statusEl.innerText = '⚠️ 正在读取本地冷快照...';
-            const localData = localStorage.getItem('sceok_portfolio');
-            if (localData) { portfolio = JSON.parse(localData); updateUI(); }
+            statusEl.innerText = '⚠️ 正在读取本地全量缓存快照...';
+            const localData = localStorage.getItem('sceok_portfolio_v3');
+            const localF = localStorage.getItem('sceok_fdb_v3');
+            if (localData) { portfolio = JSON.parse(localData); }
+            if (localF) { customFinancialDB = JSON.parse(localF); }
+            updateUI();
         });
 }
 
