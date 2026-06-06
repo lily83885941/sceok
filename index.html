@@ -127,19 +127,21 @@
         .badge-l { background-color: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
         .badge-x { background-color: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.3); }
         
-        /* 样式微调：让超链接导航更分明清晰 */
-        .info-links-container {
-            margin-top: 4px;
+        /* 快捷超链接专设排版 */
+        .info-links-bar {
+            margin-top: 5px;
             font-size: 12px;
             display: flex;
-            gap: 12px;
+            gap: 15px;
         }
-        .action-link {
+        .action-btn-link {
             color: var(--primary);
             text-decoration: none;
+            font-weight: 500;
         }
-        .action-link:hover {
+        .action-btn-link:hover {
             text-decoration: underline;
+            color: #fff;
         }
 
         /* 弹窗样式 */
@@ -226,7 +228,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>证券信息</th>
+                        <th>证券标的信息</th>
                         <th>所属账户</th>
                         <th>行业大类</th>
                         <th>当前实时价</th>
@@ -314,7 +316,7 @@ const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9I
 let portfolio = [];
 let livePriceCache = {};
 
-// 1. 全自动抓取美股实时行情
+// 1. 行情自动捕捉流
 async function fetchLivePrice(code) {
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) {
         return livePriceCache[code].price;
@@ -329,7 +331,6 @@ async function fetchLivePrice(code) {
         }
         return null;
     } catch (e) {
-        console.warn(`无法抓取 ${code} 实时价，启用备用数据.`);
         return null;
     }
 }
@@ -369,7 +370,7 @@ function loadPortfolioFromGoogleSheet() {
 
 window.addEventListener('DOMContentLoaded', loadPortfolioFromGoogleSheet);
 
-// 3. 计算与渲染 UI 核心层
+// 3. 核心计算与 UI 渲染
 async function updateUI() {
     const currentAccountFilter = document.getElementById('accountFilter').value;
     const currentCategoryFilter = document.getElementById('categoryFilter').value;
@@ -408,21 +409,21 @@ async function updateUI() {
     tbody.innerHTML = '';
 
     displayItems.forEach(item => {
-        // 去除代码后缀(如 BRK.B 转为 BRK) 用于 SEC 更精准的公司级模糊搜索
-        const cleanCode = item.code.split('.')[0]; 
-        
+        // 核心修正：清洗特殊股票代码（例如把 BRK.B 处理成 BRK 去匹配 SEC 接口）
+        const cleanTicker = item.code.split('.')[0];
+
+        // 拼装高兼容性的直达跳转链接
         const profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
-        // 改用 SEC 官方的高兼容性全局公司检索接口，防止直接输入 CIK 产生 00000000GE Not Found 报错
-        const secUrl = `https://www.sec.gov/edgar/searchedgar/companysearch?companyName=${cleanCode}`;
+        const secUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}&action=getcompany`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <b style="font-size: 16px;">${item.code}</b><br>
+                <b style="font-size: 16px; color:#fff;">${item.code}</b><br>
                 <span style="color: var(--text-muted); font-size: 14px;">${item.name}</span>
-                <div class="info-links-container">
-                    <a href="${profileUrl}" target="_blank" class="action-link">📈 公司简介</a>
-                    <a href="${secUrl}" target="_blank" class="action-link">📄 SEC财务报表</a>
+                <div class="info-links-bar">
+                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介</a>
+                    <a href="${secUrl}" target="_blank" class="action-btn-link">📄 SEC财务报表</a>
                 </div>
             </td>
             <td><span class="badge badge-${item.account.toLowerCase()}">${item.account} 账户</span></td>
@@ -434,7 +435,7 @@ async function updateUI() {
         tbody.appendChild(tr);
     });
 
-    // 计算汇总看板数据
+    // 大盘看板数值回填汇总
     const totalProfit = totalValue - totalCost;
     const totalRate = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
     document.getElementById('g-val').innerText = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -471,7 +472,6 @@ async function updateUI() {
     updateCharts(catValues);
 }
 
-// 表格远程添加逻辑
 function savePosition() {
     const code = document.getElementById('secCode').value.trim().toUpperCase();
     const name = document.getElementById('secName').value.trim();
