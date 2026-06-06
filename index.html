@@ -3,446 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球多账户多行业资产综合管理系统 - CONSOLIDATED CORE</title>
+    <title>实时股价看板</title>
     <style>
-        :root { 
-            --bg-color: #0b111e; 
-            --card-bg: #161e2e; 
-            --text-color: #f5f6fa; 
-            --accent: #00f2fe; 
-            --up: #2ecc71; 
-            --down: #ff4d4f; 
-            --border: #242f47; 
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-        body { background: var(--bg-color); color: var(--text-color); padding: 16px; padding-bottom: 80px; }
-        .container { max-width: 1200px; margin: 0 auto; width: 100%; }
-        .header { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
-        .title-main { font-size: 26px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
-        .summary-section-title { font-size: 13px; color: #6c7a9c; margin-bottom: 6px; font-weight: bold; display: flex; align-items: center; gap: 5px;}
-        
-        .stats-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .stats-category-card { background: var(--card-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border); position: relative; }
-        .cat-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1c273d; padding-bottom: 6px; margin-bottom: 10px; }
-        .cat-title { font-weight: bold; font-size: 14px; }
-        .cat-count { font-size: 11px; background: #212e4a; padding: 2px 8px; border-radius: 10px; color: var(--accent); }
-        .cat-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
-        .cat-lbl { color: #536380; }
-        .cat-val { font-weight: bold; font-size: 14px; }
-        
-        .tabs-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .tabs { display: flex; gap: 5px; }
-        .tab-item { padding: 12px 16px; cursor: pointer; color: #6c7a9c; font-size: 14px; border-bottom: 2px solid transparent; }
-        .tab-item.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
-        .notice-setting-btn { background: rgba(0, 242, 254, 0.05); color: var(--accent); border: 1px solid rgba(0,242,254,0.3); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-
-        .filter-container { background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 15px; }
-        .filter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; font-size: 12px; }
-        .filter-lbl { color: #6c7a9c; min-width: 60px; font-weight: bold; }
-        .filter-options { display: flex; gap: 6px; flex-wrap: wrap; }
-        .filter-btn { background: #1c273d; color: #a5b7da; border: 1px solid var(--border); padding: 4px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; }
-        .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
-        
-        .sync-banner { background: rgba(0, 242, 254, 0.02); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; }
-        .btn-sm { background: #212e4a; color: #a5b7da; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        .btn-add { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 15px; cursor: pointer; font-size: 15px; }
-        
-        .cards-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
-        .stock-card { background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid transparent; display: flex; flex-direction: column; justify-content: space-between; }
-        
-        .card-top { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .badge-group { display: flex; gap: 4px; align-items: center; margin-left: 5px; }
-        .market-badge { font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: bold; }
-        .badge-us { background: rgba(0,242,254,0.12); color: var(--accent); }
-        .badge-acct { background: rgba(155,89,182,0.15); color: #9b59b6; }
-        .badge-sector { background: rgba(241,196,15,0.12); color: #f1c40f; }
-        
-        .code { color: var(--accent); font-weight: bold; font-family: monospace; font-size: 14px; }
-        .name-link { font-weight: bold; font-size: 15px; color: #fff; text-decoration: none; line-height: 1.2; }
-        .name-link:hover { color: var(--accent); text-decoration: underline; }
-        .change { font-weight: bold; font-size: 14px; }
-        
-        .data-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; }
-        .data-cell { text-align: center; }
-        .lbl { font-size: 10px; color: #536380; margin-bottom: 2px; }
-        .val { font-size: 13px; font-weight: 500; }
-        
-        .links-row { display: flex; gap: 6px; margin-top: 10px; }
-        .ext-link { flex: 1; text-align: center; background: #1c273d; color: #8fa0c4; font-size: 11px; padding: 5px; border-radius: 4px; text-decoration: none; border: 1px solid #24324f; }
-        .ext-link:hover { background: #24324f; color: #fff; }
-        .ext-link.sec { border-color: #e67e22; color: #e67e22; background: rgba(230,126,34,0.03); }
-        .ext-link.sec:hover { background: #e67e22; color: #fff; }
-
-        .card-ft { margin-top: 10px; padding-top: 8px; border-top: 1px solid #1c273d; display: flex; justify-content: space-between; font-size: 11px; color: #6c7a9c; }
-        .up { color: var(--up); } .down { color: var(--down); }
-        
-        .table-responsive { width: 100%; overflow-x: auto; background: var(--card-bg); border-radius: 12px; padding: 6px; margin-bottom: 15px; }
-        .report-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
-        .report-table th { text-align: left; color: #6c7a9c; padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
-        .report-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
-        
-        .sector-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .sector-box { background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
-        .sector-box-title { font-size: 11px; color: #6c7a9c; margin-bottom: 2px; }
-        .sector-box-val { font-size: 13px; font-weight: bold; color: #fff; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: var(--card-bg); border-radius: 15px; padding: 20px; width: 90%; max-width: 400px; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 12px; color: #8fa0c4; margin-bottom: 4px; }
-        .form-group input, .form-group select { width: 100%; background: #0b111e; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; font-size: 13px; }
-        .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .section { display: none; } .section.active { display: block; }
-        #status-bar { font-size: 11px; background: #1c273d; color: var(--accent); padding: 4px 10px; border-radius: 4px; font-family: monospace; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f7fa; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #1a1a1a; font-size: 24px; margin-bottom: 20px; }
+        .refresh-status { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eef2f5; }
+        th { background-color: #f8fafc; color: #4a5568; font-weight: 600; }
+        tr:hover { background-color: #f8fafc; }
+        .btn-refresh { background: #0066cc; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-refresh:hover { background: #0052a3; }
+        #error-msg { color: #df1616; display: none; text-align: center; margin: 10px 0; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <div class="title-main">PORTFOLIO</div>
-                <div style="font-size:11px;color:#8da2fb;margin-top:2px;">全球多账户多行业资产全自动综合监控看板</div>
-            </div>
-            <div id="status-bar">正在接入全美综合交易所(NBBO)核心...</div>
-        </div>
-        
-        <div class="summary-section-title">🗃️ 资产财务账本汇总矩阵 (全美交易所聚合流)</div>
-        <div class="stats-board">
-            <div class="stats-category-card" style="border-color: var(--accent); background: linear-gradient(145deg, #161e2e, #111a28);">
-                <div class="cat-header"><span class="cat-title" style="color:var(--accent); font-size:15px;">👑 全账户大统一汇总</span><span class="cat-count" id="cnt-all">0</span></div>
-                <div class="cat-row"><span class="cat-lbl">总资产市值 (USD)</span><span class="cat-val" style="font-size:16px; color:var(--accent);" id="mv-all">$0.00</span></div>
-                <div class="cat-row"><span class="cat-lbl">总盈亏 / 收益率</span><span class="cat-val" id="pft-all">$0.00 (0%)</span></div>
-            </div>
-            <div class="stats-category-card">
-                <div class="cat-header"><span class="cat-title" style="color:#9b59b6;">🔒 L 独立账户</span><span class="cat-count" id="cnt-acct-L">0</span></div>
-                <div class="cat-row"><span class="cat-lbl">账户内市值</span><span class="cat-val" id="mv-acct-L">$0.00</span></div>
-                <div class="cat-row"><span class="cat-lbl">账户内盈亏/收益率</span><span class="cat-val" id="pft-acct-L">$0.00 (0%)</span></div>
-            </div>
-            <div class="stats-category-card">
-                <div class="cat-header"><span class="cat-title" style="color:#e74c3c;">🔑 X 独立账户</span><span class="cat-count" id="cnt-acct-X">0</span></div>
-                <div class="cat-row"><span class="cat-lbl">账户内市值</span><span class="cat-val" id="mv-acct-X">$0.00</span></div>
-                <div class="cat-row"><span class="cat-lbl">账户内盈亏/收益率</span><span class="cat-val" id="pft-acct-X">$0.00 (0%)</span></div>
-            </div>
-        </div>
-        
-        <div class="tabs-bar">
-            <div class="tabs">
-                <div class="tab-item active" onclick="switchTab(event, 'holding')">📊 持仓头寸</div>
-                <div class="tab-item" onclick="switchTab(event, 'report')">📑 行业与配置分布</div>
-            </div>
-            <button class="notice-setting-btn" onclick="requestNoticePermission()">🔔 开启新财报推送通知</button>
-        </div>
-        
-        <div class="sync-banner">
-            <div>数据控制台：</div>
-            <div><button class="btn-sm" onclick="exportData()">导出备份</button><button class="btn-sm" onclick="importData()">导入恢复</button></div>
-        </div>
-        
-        <div id="holding" class="section active">
-            <div class="filter-container">
-                <div class="filter-row">
-                    <div class="filter-lbl">筛选账户：</div>
-                    <div class="filter-options">
-                        <button class="filter-btn active" data-type="acct" onclick="setFilter(this, 'all')">全部账户</button>
-                        <button class="filter-btn" data-type="acct" onclick="setFilter(this, 'L')">L 账户</button>
-                        <button class="filter-btn" data-type="acct" onclick="setFilter(this, 'X')">X 账户</button>
-                    </div>
-                </div>
-                <div class="filter-row">
-                    <div class="filter-lbl">行业板块：</div>
-                    <div class="filter-options">
-                        <button class="filter-btn active" data-type="sector" onclick="setFilter(this, 'all')">全板块</button>
-                        <button class="filter-btn" data-type="sector" onclick="setFilter(this, '公共事业')">⚡ 公共事业</button>
-                        <button class="filter-btn" data-type="sector" onclick="setFilter(this, '科技')">💻 科技</button>
-                        <button class="filter-btn" data-type="sector" onclick="setFilter(this, '消费')">🛍️ 消费</button>
-                        <button class="filter-btn" data-type="sector" onclick="setFilter(this, '金融')">🏦 金融</button>
-                    </div>
-                </div>
-            </div>
 
-            <button class="btn-add" onclick="openModal()">+ 添加全新证券/基金持仓</button>
-            <div id="list" class="cards-list"></div>
-        </div>
-        
-        <div id="report" class="section">
-            <div class="summary-section-title">🧱 四大核心行业板块资金集中度汇总</div>
-            <div class="sector-summary-grid">
-                <div class="sector-box"><div class="sector-box-title">⚡ 公共事业</div><div class="sector-box-val" id="sec-val-公共事业">$0.00 (0%)</div></div>
-                <div class="sector-box"><div class="sector-box-title">💻 科技板块</div><div class="sector-box-val" id="sec-val-科技">$0.00 (0%)</div></div>
-                <div class="sector-box"><div class="sector-box-title">🛍️ 消费大类</div><div class="sector-box-val" id="sec-val-消费">$0.00 (0%)</div></div>
-                <div class="sector-box"><div class="sector-box-title">🏦 金融重仓</div><div class="sector-box-val" id="sec-val-金融">$0.00 (0%)</div></div>
-            </div>
-
-            <div class="summary-section-title" style="margin-top:15px;">📑 单个证券及归类全景透视表</div>
-            <div class="table-responsive">
-                <table class="report-table">
-                    <thead><tr><th>证券名称</th><th>所属账户</th><th>行业大类</th><th>当前价格</th><th>当前市值(USD)</th><th>全局总占比</th></tr></thead>
-                    <tbody id="report-body"></tbody>
-                </table>
-            </div>
-        </div>
+<div class="container">
+    <h1>📊 实时股价看板</h1>
+    <div class="refresh-status">
+        <button class="btn-refresh" onclick="fetchStockData()">🔄 手动刷新</button>
+        <span id="update-time">正在加载最新数据...</span>
     </div>
+    
+    <div id="error-msg"></div>
 
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom:14px; color:var(--accent)">编辑证券头寸</h3>
-            <input type="hidden" id="edit-idx">
-            <div class="form-group"><label>证券代码 (大写英文如 AAPL)</label><input type="text" id="f-code" placeholder="如: AAPL"></div>
-            <div class="form-group"><label>公司/标的名称</label><input type="text" id="f-name" placeholder="如: 苹果"></div>
-            <div class="form-group">
-                <label>划分所属账户</label>
-                <select id="f-acct"><option value="L">L 账户</option><option value="X">X 账户</option></select>
-            </div>
-            <div class="form-group">
-                <label>划分行业大类</label>
-                <select id="f-sector"><option value="公共事业">⚡ 公共事业</option><option value="科技">💻 科技</option><option value="消费">🛍️ 消费</option><option value="金融">🏦 金融</option></select>
-            </div>
-            <div class="form-group"><label>持仓数量 (股)</label><input type="number" id="f-qty"></div>
-            <div class="form-group"><label>买入均价成本 ($)</label><input type="number" step="0.01" id="f-cost"></div>
-            <div class="modal-btns">
-                <button class="btn-sm" style="background:#212e4a;" onclick="closeModal()">放弃</button>
-                <button class="btn-sm" style="background:var(--accent);color:#000;font-weight:bold;" onclick="save()">录入系统</button>
-            </div>
-        </div>
-    </div>
+    <table id="stock-table">
+        <thead>
+            <tr id="table-header">
+                </tr>
+        </thead>
+        <tbody id="table-body">
+            </tbody>
+    </table>
+</div>
 
-    <script>
-        let stocks = JSON.parse(localStorage.getItem('my_stocks') || '[]');
-        let activeFilters = { acct: 'all', sector: 'all' };
-        let realPrices = {}; 
+<script>
+    // 已将你的链接自动转换为可实时抓取的 CSV 导出格式
+    const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRx0DHeRkTe9rmw5qy2SZMgbHXUPGe7XL3-MaOkqwUoT5VaMcLst4rOYauZ6ART_NjzxuM5qa4lSyq4/pub?output=csv";
 
-        const usMetaConfig = {
-            'AAPL': { web: 'https://www.apple.com/investor/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000320193' },
-            'NVDA': { web: 'https://investor.nvidia.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001045810' },
-            'MSFT': { web: 'https://www.microsoft.com/en-us/investor', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000789019' },
-            'META': { web: 'https://investor.fb.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001326801' },
-            'TSLA': { web: 'https://ir.tesla.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001318605' },
-            'AMZN': { web: 'https://www.amazon.com/ir', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001018724' },
-            'GOOGL':{ web: 'https://abc.xyz/investor/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001652044' },
-            'BRK.B':{ web: 'https://www.berkshirehathaway.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001067983' },
-            'PFE':  { web: 'https://investors.pfizer.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000078003' },
-            'PM':   { web: 'https://www.pmi.com/investor-relations', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001418135' },
-            'AES':  { web: 'https://www.aes.com/investors', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000874761' },
-            'IBKR': { web: 'https://www.interactivebrokers.com/ir', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001381197' },
-            'C':    { web: 'https://www.citigroup.com/global/investors', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000831001' },
-            'GE':   { web: 'https://www.ge.com/investor-relations', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000040545' },
-            'SOFI': { web: 'https://investors.sofi.com/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001818873' },
-            'AEP':  { web: 'https://www.aep.com/investors/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000004904' },
-            'CVX':  { web: 'https://www.chevron.com/investors', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000093410' },
-            'DUK':  { web: 'https://www.duke-energy.com/our-company/investors', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001326160' },
-            'MRK':  { web: 'https://www.merck.com/investor-relations/', sec: 'https://www.sec.gov/edgar/browse/?CIK=0000310158' },
-            'NGG':  { web: 'https://www.nationalgrid.com/investors', sec: 'https://www.sec.gov/edgar/browse/?CIK=0001004315' }
-        };
+    async function fetchStockData() {
+        const timeSpan = document.getElementById('update-time');
+        const errorDiv = document.getElementById('error-msg');
+        timeSpan.innerText = "正在刷新...";
+        errorDiv.style.display = 'none';
 
-        function requestNoticePermission() {
-            if (!("Notification" in window)) { alert("浏览器不支持。"); return; }
-            Notification.requestPermission().then(p => {
-                if (p === "granted") alert("🔔 财报推送已激活！");
-            });
-        }
-
-        // 终极对齐改造：采用华尔街顶级公开报价中心的多路由高频聚合核心（对齐全美综合BBO价）
-        async function fetchRealTimePrices() {
-            if (stocks.length === 0) return;
-            document.getElementById('status-bar').innerText = "⚡ 正在拉取全美多交易所聚合(NBBO)实时流...";
+        try {
+            // 通过添加时间戳防止浏览器缓存，确保获取的是绝对实时的数据
+            const response = await fetch(`${sheetCsvUrl}&timestamp=${new Date().getTime()}`);
+            if (!response.ok) throw new Error('网络请求失败');
             
-            let symbols = [...new Set(stocks.map(s => s.code.toUpperCase().replace('.PF','').trim()))];
+            const data = await response.text();
             
-            try {
-                // 采用全美综合交易流网关（Consolidated Tape 镜像节点）
-                let response = await fetch(`https://api.twelvedata.com/price?symbol=${symbols.join(',')}&apikey=7ba831d102be46dfb271d441f7ee928a`);
-                let data = await response.json();
-                
-                if (data) {
-                    symbols.forEach(sym => {
-                        let priceNode = data[sym];
-                        // 针对单股票和多股票返回的 JSON 结构进行兼容清洗
-                        let priceVal = priceNode ? parseFloat(priceNode.price || data.price) : null;
-                        
-                        if (priceVal) {
-                            realPrices[sym] = {
-                                price: priceVal,
-                                changePercent: realPrices[sym] ? realPrices[sym].changePercent : 0
-                            };
-                        }
-                    });
-                }
-                
-                // 二级并行线：补充精确的当日累计涨跌幅
-                let resPercent = await fetch(`https://api.finnhub.io/api/v1/quote?symbol=${symbols[0]}&token=sandbox_c8m9bcaad3i9g7188epg`);
-                let dataPercent = await resPercent.json();
-                if(dataPercent && dataPercent.dp) {
-                    symbols.forEach(sym => {
-                        if(realPrices[sym]) realPrices[sym].changePercent = dataPercent.dp;
-                    });
-                }
-
-                document.getElementById('status-bar').innerText = "● NBBO 聚合行情同步完成 (" + new Date().toLocaleTimeString() + ")";
-            } catch (error) {
-                document.getElementById('status-bar').innerText = "⚠️ 综合行情网关限频，高频管线保持监听";
-            }
-            render();
-        }
-
-        function render() {
-            let mData = {
-                all: { mv: 0, cv: 0, cnt: 0 },
-                'acct-L': { mv: 0, cv: 0, cnt: 0 },
-                'acct-X': { mv: 0, cv: 0, cnt: 0 }
-            };
-            let sectorMv = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
-            
-            const list = document.getElementById('list'), rb = document.getElementById('report-body');
-            list.innerHTML = ''; rb.innerHTML = '';
-            
-            stocks.forEach((s, i) => {
-                let codeUpper = s.code.toUpperCase().replace('.PF','').trim();
-                let liveData = realPrices[codeUpper] || { price: s.cost, changePercent: 0 };
-                let curPrice = liveData.price;
-                let changePercent = liveData.changePercent;
-
-                let curMv = s.qty * curPrice;
-                let costMv = s.qty * s.cost;
-                
-                mData.all.mv += curMv; mData.all.cv += costMv; mData.all.cnt++;
-                let acctKey = 'acct-' + s.acct;
-                if(mData[acctKey]) {
-                    mData[acctKey].mv += curMv; mData[acctKey].cv += costMv; mData[acctKey].cnt++;
-                }
-                if(sectorMv[s.sector] !== undefined) {
-                    sectorMv[s.sector] += curMv;
-                }
-
-                let pft = curMv - costMv;
-                let passAcct = (activeFilters.acct === 'all' || activeFilters.acct === s.acct);
-                let passSector = (activeFilters.sector === 'all' || activeFilters.sector === s.sector);
-
-                let config = usMetaConfig[codeUpper] || { 
-                    web: `https://www.google.com/search?q=${encodeURIComponent(s.name + ' investor relations')}`, 
-                    sec: `https://www.sec.gov/edgar/searchedgar/companysearch` 
-                };
-
-                if (passAcct && passSector) {
-                    list.innerHTML += `<div class="stock-card">
-                        <div class="card-top">
-                            <div>
-                                <span class="code">${s.code}</span>
-                                <a href="${config.web}" target="_blank" class="name-link">${s.name}</a>
-                                <div class="badge-group" style="display:inline-flex;">
-                                    <span class="market-badge badge-us">NBBO聚合</span>
-                                    <span class="market-badge badge-acct">${s.acct}账户</span>
-                                    <span class="market-badge badge-sector">${s.sector}</span>
-                                </div>
-                            </div>
-                            <div class="change ${changePercent>=0?'up':'down'}">${changePercent>=0?'▲':'▼'}${Math.abs(changePercent).toFixed(2)}%</div>
-                        </div>
-                        <div class="data-grid">
-                            <div class="data-cell"><div class="lbl">持仓</div><div class="val">${s.qty}</div></div>
-                            <div class="data-cell"><div class="lbl">最新价格</div><div class="val" style="color:var(--accent)">$${curPrice.toFixed(2)}</div></div>
-                            <div class="data-cell"><div class="lbl">持仓盈亏</div><div class="val ${pft>=0?'up':'down'}">${pft>=0?'+':''}${pft.toFixed(2)}</div></div>
-                            <div class="data-cell"><div class="lbl">当前市值</div><div class="val">$${curMv.toFixed(2)}</div></div>
-                        </div>
-                        <div class="links-row">
-                            <a href="${config.web}" target="_blank" class="ext-link">公司官网 🌐</a>
-                            <a href="${config.sec}" target="_blank" class="ext-link sec">EDGAR (SEC) 🏛️</a>
-                        </div>
-                        <div class="card-ft">
-                            <div>行情对齐：Wind终端综合现价流</div>
-                            <div><span onclick="edit(${i})" style="cursor:pointer;color:var(--accent)">编辑</span> <span onclick="del(${i})" style="color:#ff4d4f;margin-left:12px;cursor:pointer;">删除</span></div>
-                        </div>
-                    </div>`;
-                }
-            });
-            
-            ['all', 'acct-L', 'acct-X'].forEach(id => {
-                document.getElementById(`cnt-${id}`).innerText = mData[id].cnt;
-                document.getElementById(`mv-${id}`).innerText = '$' + mData[id].mv.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                
-                let tp = mData[id].mv - mData[id].cv;
-                let ratio = mData[id].cv > 0 ? (tp / mData[id].cv * 100).toFixed(2) : '0.00';
-                let node = document.getElementById(`pft-${id}`);
-                node.innerText = `${tp >= 0 ? '+' : ''}$${tp.toLocaleString(undefined, {maximumFractionDigits:2})} (${ratio}%)`;
-                node.className = 'cat-val ' + (tp >= 0 ? 'up' : 'down');
-            });
-
-            let totalMv = mData.all.mv;
-            ['公共事业', '科技', '消费', '金融'].forEach(sector => {
-                let sMv = sectorMv[sector];
-                let pct = totalMv > 0 ? (sMv / totalMv * 100).toFixed(1) : 0;
-                document.getElementById(`sec-val-${sector}`).innerText = `$${sMv.toLocaleString(undefined,{maximumFractionDigits:2})} (${pct}%)`;
-            });
-
-            stocks.forEach(s => {
-                let codeUpper = s.code.toUpperCase().replace('.PF','').trim();
-                let liveData = realPrices[codeUpper] || { price: s.cost };
-                let curMv = s.qty * liveData.price;
-                let pct = totalMv > 0 ? (curMv / totalMv * 100).toFixed(1) : 0;
-
-                rb.innerHTML += `<tr>
-                    <td style="font-weight:bold; color:#fff;">${s.name}</td>
-                    <td><span class="market-badge badge-acct">${s.acct} 账户</span></td>
-                    <td><span class="market-badge badge-sector">${s.sector}</span></td>
-                    <td>$${liveData.price.toFixed(2)}</td>
-                    <td>$${curMv.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                    <td style="color:var(--accent); font-weight:bold;">${pct}%</td>
-                </tr>`;
-            });
-        }
-
-        function checkMockNewReport() {
-            if (stocks.length === 0) return;
-            let lucky = stocks[Math.floor(Math.random() * stocks.length)];
-            if (Notification.permission === "granted") {
-                new Notification(`📑 SEC 财报动态`, {
-                    body: ` 发现新披露公告：您的持仓 [${lucky.name}] 刚刚向 SEC 递交了新财务数据。`
-                });
-            }
-        }
-
-        function setFilter(btn, value) {
-            btn.parentNode.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            activeFilters[btn.getAttribute('data-type')] = value;
-            render();
-        }
-
-        function switchTab(e, id) {
-            document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-            e.target.classList.add('active'); document.getElementById(id).classList.add('active'); render();
-        }
-        function openModal() { document.getElementById('edit-idx').value=''; document.getElementById('modal').style.display='flex'; }
-        function closeModal() { document.getElementById('modal').style.display='none'; }
-        
-        function edit(i) {
-            const s=stocks[i]; document.getElementById('edit-idx').value=i;
-            document.getElementById('f-code').value=s.code; document.getElementById('f-name').value=s.name;
-            document.getElementById('f-acct').value=s.acct || 'L'; document.getElementById('f-sector').value=s.sector || '科技';
-            document.getElementById('f-qty').value=s.qty; document.getElementById('f-cost').value=s.cost;
-            document.getElementById('modal').style.display='flex';
-        }
-        
-        function save() {
-            let i=document.getElementById('edit-idx').value, data={
-                code: document.getElementById('f-code').value.toUpperCase().trim(), name: document.getElementById('f-name').value.trim(),
-                acct: document.getElementById('f-acct').value, sector: document.getElementById('f-sector').value,
-                qty: parseInt(document.getElementById('f-qty').value) || 0, cost: parseFloat(document.getElementById('f-cost').value) || 0
-            };
-            if(data.code && data.name) {
-                if(i==='') stocks.push(data); else stocks[i]=data;
-                localStorage.setItem('my_stocks', JSON.stringify(stocks)); closeModal(); fetchRealTimePrices();
-            } else { alert('请填写完整'); }
-        }
-
-        function del(i) { if(confirm('确定删除吗?')){ stocks.splice(i,1); localStorage.setItem('my_stocks', JSON.stringify(stocks)); fetchRealTimePrices(); } }
-        function exportData() { navigator.clipboard.writeText(JSON.stringify(stocks)); alert('持仓数据已复制！'); }
-        function importData() { let d=prompt('请粘贴导出的 JSON：'); if(d){ try { stocks=JSON.parse(d); localStorage.setItem('my_stocks', JSON.stringify(stocks)); fetchRealTimePrices(); alert('导入成功！'); } catch(e) { alert('解析失败'); } } }
-        
-        // 提升网络对齐频次至 5 秒/次
-        setInterval(fetchRealTimePrices, 5000);
-        setInterval(checkMockNewReport, 60000);
-        
-        fetchRealTimePrices();
-    </script>
-</body>
-</html>
+            // 解析 CSV 文本数据 (处理可能存在的逗号包裹和换行)
+            const rows = data.split('\n').map(row => {
+                // 简单的逗号分割（如果数据里有带
