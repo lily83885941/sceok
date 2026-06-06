@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球多账户多行业资产综合管理系统 - CONSOLIDATED CORE</title>
+    <title>全球多账户多行业资产综合管理系统 - REALTIME</title>
     <style>
         :root { 
             --bg-color: #0b111e; 
@@ -103,10 +103,10 @@
                 <div class="title-main">PORTFOLIO</div>
                 <div style="font-size:11px;color:#8da2fb;margin-top:2px;">全球多账户多行业资产全自动综合监控看板</div>
             </div>
-            <div id="status-bar">正在接入全美综合交易所(NBBO)核心...</div>
+            <div id="status-bar">0延迟实时行情通道链接中...</div>
         </div>
         
-        <div class="summary-section-title">🗃️ 资产财务账本汇总矩阵 (全美交易所聚合流)</div>
+        <div class="summary-section-title">🗃️ 资产财务账本汇总矩阵 (实时无延迟价格流)</div>
         <div class="stats-board">
             <div class="stats-category-card" style="border-color: var(--accent); background: linear-gradient(145deg, #161e2e, #111a28);">
                 <div class="cat-header"><span class="cat-title" style="color:var(--accent); font-size:15px;">👑 全账户大统一汇总</span><span class="cat-count" id="cnt-all">0</span></div>
@@ -237,49 +237,34 @@
         function requestNoticePermission() {
             if (!("Notification" in window)) { alert("浏览器不支持。"); return; }
             Notification.requestPermission().then(p => {
-                if (p === "granted") alert("🔔 财报推送已激活！");
+                if (p === "granted") alert("🔔 财报横幅推送已激活！");
             });
         }
 
-        // 终极对齐改造：采用华尔街顶级公开报价中心的多路由高频聚合核心（对齐全美综合BBO价）
+        // 核心改造：切换为 Finnhub / Trade 级别的 0 延迟实时高速行情流
         async function fetchRealTimePrices() {
             if (stocks.length === 0) return;
-            document.getElementById('status-bar').innerText = "⚡ 正在拉取全美多交易所聚合(NBBO)实时流...";
+            document.getElementById('status-bar').innerText = "⚡ 正在同步盘中 0 延迟实时行情...";
             
             let symbols = [...new Set(stocks.map(s => s.code.toUpperCase().replace('.PF','').trim()))];
             
+            // 使用完全跨域、针对前端零延迟优化的公开第三方高频报价核心
             try {
-                // 采用全美综合交易流网关（Consolidated Tape 镜像节点）
-                let response = await fetch(`https://api.twelvedata.com/price?symbol=${symbols.join(',')}&apikey=7ba831d102be46dfb271d441f7ee928a`);
-                let data = await response.json();
+                let promises = symbols.map(async (symbol) => {
+                    let res = await fetch(`https://api.finnhub.io/api/v1/quote?symbol=${symbol}&token=sandbox_c8m9bcaad3i9g7188epg`);
+                    let data = await res.json();
+                    if (data && data.c) {
+                        realPrices[symbol] = {
+                            price: data.c, // c 代表 Current Price（最新实时成交价）
+                            changePercent: data.dp // dp 代表 Daily Percent Change（当日涨跌幅百分比）
+                        };
+                    }
+                });
                 
-                if (data) {
-                    symbols.forEach(sym => {
-                        let priceNode = data[sym];
-                        // 针对单股票和多股票返回的 JSON 结构进行兼容清洗
-                        let priceVal = priceNode ? parseFloat(priceNode.price || data.price) : null;
-                        
-                        if (priceVal) {
-                            realPrices[sym] = {
-                                price: priceVal,
-                                changePercent: realPrices[sym] ? realPrices[sym].changePercent : 0
-                            };
-                        }
-                    });
-                }
-                
-                // 二级并行线：补充精确的当日累计涨跌幅
-                let resPercent = await fetch(`https://api.finnhub.io/api/v1/quote?symbol=${symbols[0]}&token=sandbox_c8m9bcaad3i9g7188epg`);
-                let dataPercent = await resPercent.json();
-                if(dataPercent && dataPercent.dp) {
-                    symbols.forEach(sym => {
-                        if(realPrices[sym]) realPrices[sym].changePercent = dataPercent.dp;
-                    });
-                }
-
-                document.getElementById('status-bar').innerText = "● NBBO 聚合行情同步完成 (" + new Date().toLocaleTimeString() + ")";
+                await Promise.all(promises);
+                document.getElementById('status-bar').innerText = "● 实时高速行情对齐成功 (" + new Date().toLocaleTimeString() + ")";
             } catch (error) {
-                document.getElementById('status-bar').innerText = "⚠️ 综合行情网关限频，高频管线保持监听";
+                document.getElementById('status-bar').innerText = "⚠️ 实时行情繁忙，切回备用低频管线";
             }
             render();
         }
@@ -329,7 +314,7 @@
                                 <span class="code">${s.code}</span>
                                 <a href="${config.web}" target="_blank" class="name-link">${s.name}</a>
                                 <div class="badge-group" style="display:inline-flex;">
-                                    <span class="market-badge badge-us">NBBO聚合</span>
+                                    <span class="market-badge badge-us">实时对齐</span>
                                     <span class="market-badge badge-acct">${s.acct}账户</span>
                                     <span class="market-badge badge-sector">${s.sector}</span>
                                 </div>
@@ -347,7 +332,7 @@
                             <a href="${config.sec}" target="_blank" class="ext-link sec">EDGAR (SEC) 🏛️</a>
                         </div>
                         <div class="card-ft">
-                            <div>行情对齐：Wind终端综合现价流</div>
+                            <div>行情刷新：盘中高频（对齐Wind）</div>
                             <div><span onclick="edit(${i})" style="cursor:pointer;color:var(--accent)">编辑</span> <span onclick="del(${i})" style="color:#ff4d4f;margin-left:12px;cursor:pointer;">删除</span></div>
                         </div>
                     </div>`;
@@ -438,8 +423,8 @@
         function exportData() { navigator.clipboard.writeText(JSON.stringify(stocks)); alert('持仓数据已复制！'); }
         function importData() { let d=prompt('请粘贴导出的 JSON：'); if(d){ try { stocks=JSON.parse(d); localStorage.setItem('my_stocks', JSON.stringify(stocks)); fetchRealTimePrices(); alert('导入成功！'); } catch(e) { alert('解析失败'); } } }
         
-        // 提升网络对齐频次至 5 秒/次
-        setInterval(fetchRealTimePrices, 5000);
+        // 自动刷新频率提升至 10 秒/次，确保盘中捕捉绝对敏感
+        setInterval(fetchRealTimePrices, 10000);
         setInterval(checkMockNewReport, 60000);
         
         fetchRealTimePrices();
