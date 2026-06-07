@@ -64,7 +64,7 @@
         .mkt-hk { background-color: #cc0000; color: #fff; }
         .mkt-cn { background-color: #2ea44f; color: #fff; }
         .info-links-bar { margin-top: 5px; font-size: 11px; display: flex; gap: 12px; }
-        .action-btn-link { color: var(--primary); text-decoration: none; }
+        .action-btn-link { color: var(--primary); text-decoration: none; font-weight: 500; }
         .action-btn-link:hover { text-decoration: underline; color: #fff; }
         .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .chart-block { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 5px; }
@@ -94,13 +94,6 @@
         .trend-down { color: #f85149; }
         .chart-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; }
         .chart-container { height: 240px; position: relative; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 1000; }
-        .modal-content { background-color: var(--card-bg); border: 1px solid var(--border-color); width: 90%; max-width: 500px; margin: 10% auto; border-radius: 8px; padding: 25px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; }
-        .form-group input, .form-group select { width: 100%; padding: 8px 12px; }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -150,7 +143,6 @@
                         <select id="marketFilter" onchange="updateUI()"><option value="all">市场过滤: 全部</option><option value="美股">🇺🇸 美股</option><option value="港股">🇭🇰 港股</option><option value="A股">🇨🇳 A股</option></select>
                         <select id="categoryFilter" onchange="updateUI()"><option value="all">板块过滤: 全部</option><option value="公共事业">⚡ 公共事业</option><option value="科技">💻 科技</option><option value="消费">🛍️ 消费</option><option value="金融">🏦 金融</option></select>
                     </div>
-                    <div><button class="btn-primary" onclick="openModal()">+ 录入新头寸</button></div>
                 </div>
                 <table>
                     <thead><tr><th>证券标的信息</th><th>所属账户</th><th>行业大类</th><th>持仓股数</th><th>当前实时价</th><th>当前总市值</th><th>全局占比</th></tr></thead>
@@ -182,21 +174,8 @@
     </div>
 </div>
 
-<div class="modal" id="editModal">
-    <div class="modal-content">
-        <div class="modal-header"><h3 style="font-size: 16px;">添加全球证券头寸</h3><button onclick="closeModal()" style="border:none; background:none; font-size:20px; color:var(--text-muted); cursor:pointer;">&times;</button></div>
-        <div class="form-group"><label>证券代码 (如 AAPL)</label><input type="text" id="secCode" style="text-transform: uppercase;"></div>
-        <div class="form-group"><label>标的公司名称</label><input type="text" id="secName"></div>
-        <div class="form-group"><label>分配所属管理账户</label><select id="secAccount"><option value="L">L 账户</option><option value="X">X 账户</option></select></div>
-        <div class="form-group"><label>划分行业大类</label><select id="secCategory"><option value="公共事业">⚡ 公共事业</option><option value="科技">💻 科技</option><option value="消费">🛍️ 消费</option><option value="金融">🏦 金融</option></select></div>
-        <div class="form-group"><label>持仓数量 (股)</label><input type="number" id="secQuantity" step="any"></div>
-        <div class="form-group"><label>买入成本价</label><input type="number" id="secCost" step="any"></div>
-        <div class="modal-footer"><button onclick="closeModal()">取消</button><button class="btn-primary" onclick="savePosition()">同步至云端表格</button></div>
-    </div>
-</div>
-
 <script>
-// 【已对齐】唯一锁定的标准全量 Web 应用程序接入终点
+// 标准全量唯一 Web 应用接入终点
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
 
 let portfolio = [];
@@ -233,12 +212,15 @@ function detectMarket(code) {
     return { type: "美股", badgeClass: "mkt-us", label: "美股" };
 }
 
+// 动态行情源：针对 BRK.B 及中港美股全面优化
 async function fetchLivePrice(code) {
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) return livePriceCache[code].price;
     const market = detectMarket(code);
-    let yahooSymbol = code;
-    if (market.type === "港股" && !code.includes(".")) yahooSymbol = code.padStart(5, '0') + ".HK";
-    else if (market.type === "A股" && /^\d{6}$/.test(code)) yahooSymbol = code.startsWith("6") ? code + ".SS" : code + ".SZ";
+    let yahooSymbol = code.trim().toUpperCase();
+    if (yahooSymbol === "BRK.B") yahooSymbol = "BRK-B";
+    else if (market.type === "港股" && !yahooSymbol.includes(".")) yahooSymbol = yahooSymbol.padStart(5, '0') + ".HK";
+    else if (market.type === "A股" && /^\d{6}$/.test(yahooSymbol)) yahooSymbol = yahooSymbol.startsWith("6") ? yahooSymbol + ".SS" : yahooSymbol + ".SZ";
+    
     try {
         let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`);
         let json = await res.json();
@@ -263,17 +245,21 @@ function loadPortfolioFromGoogleSheet() {
                 rawAssets = data;
             }
 
-            // 【超级容错解耦核心】中英文、大小写表头全自动智能捕获
+            // 【超级金刚不坏级中文映射核心】完美兼容您表格里的“证券代码”、“持仓数量”等纯中文表头
             portfolio = rawAssets.map(item => {
-                let qVal = item.quantity || item.Quantity || item.QUANTITY || item["持仓股数"] || item["持仓数量"] || 0;
-                let cVal = item.cost || item.Cost || item.COST || item.costPrice || item["买入成本"] || item["成本价"] || 0;
-                let pVal = item.currentPrice || item.CurrentPrice || item["当前实时价"] || item["实时价"] || 0;
+                let codeVal = item["证券代码"] || item.code || item.Code || '';
+                let nameVal = item["公司名称"] || item.name || item.Name || '';
+                let qVal = item["持仓数量"] || item.quantity || item.Quantity || 0;
+                let cVal = item["买入成本"] || item.cost || item.Cost || 0;
+                let pVal = item["当前价格"] || item.currentPrice || item.CurrentPrice || 0;
+                let accVal = item["所属账户"] || item.account || item.Account || 'L';
+                let catVal = item["行业大类"] || item.category || item.Category || '其它';
 
                 return {
-                    code: item.code ? item.code.toUpperCase().trim() : '',
-                    name: item.name || '',
-                    account: item.account ? item.account.toUpperCase().trim() : '', 
-                    category: item.category || '其它',
+                    code: codeVal ? codeVal.toUpperCase().trim() : '',
+                    name: nameVal || '',
+                    account: accVal ? accVal.toUpperCase().trim() : '', 
+                    category: catVal || '其它',
                     quantity: parseFloat(qVal) || 0,
                     costPrice: parseFloat(cVal) || 0,
                     sheetPrice: parseFloat(pVal) || 0
@@ -282,30 +268,32 @@ function loadPortfolioFromGoogleSheet() {
 
             customFinancialDB = {};
             rawFinancials.forEach(item => {
-                if (item.code) {
-                    const ticker = item.code.toUpperCase().trim();
+                let fCode = item["证券代码"] || item.code || '';
+                if (fCode) {
+                    const ticker = fCode.toUpperCase().trim();
                     customFinancialDB[ticker] = {
-                        name: item.name || ticker,
+                        name: item["公司名称"] || item.name || ticker,
                         market: detectMarket(ticker).type,
-                        revenue: item.revenue || '--',
+                        revenue: item.revenue || item["主营收入"] || '--',
                         revTrend: item.revTrend || '',
                         revUp: item.revUp !== undefined ? (item.revUp === true || item.revUp === "TRUE") : true,
-                        netIncome: item.netIncome || '--',
+                        netIncome: item.netIncome || item["净利润"] || '--',
                         netTrend: item.netTrend || '',
                         netUp: item.netUp !== undefined ? (item.netUp === true || item.netUp === "TRUE") : true,
-                        grossMargin: item.grossMargin || '--',
-                        netMargin: item.netMargin || '--',
-                        eps: item.eps || '--',
-                        bps: item.bps || '--',
-                        pe: item.pe || '--',
-                        pb: item.pb || '--',
-                        ps: item.ps || '--',
+                        grossMargin: item.grossMargin || item["销售毛利率"] || '--',
+                        netMargin: item.netMargin || item["销售净利率"] || '--',
+                        eps: item.eps || item["每股收益"] || '--',
+                        bps: item.bps || item["每股净资产"] || '--',
+                        pe: item.pe || item["市盈率"] || '--',
+                        pb: item.pb || item["市净率"] || '--',
+                        ps: item.ps || item["市销率"] || '--',
                         labels: item.chartLabels ? item.chartLabels.split(',') : ['Q1', 'Q2', 'Q3', 'Q4'],
                         values: item.chartData ? item.chartData.split(',').map(Number) : [0,0,0,0]
                     };
                 }
             });
 
+            // 联动补充缺少的财务卡片样板
             const fallbackDB = {
                 'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', revUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
                 'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', revUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] }
@@ -369,6 +357,7 @@ async function updateUI() {
         let profileUrl = "", reportUrl = "";
         const cleanTicker = item.code.split('.')[0];
 
+        // 统一多源深度联动逻辑：自动拼装公司网址简介与官方权威财报源
         if (item.marketInfo.type === "美股") {
             profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
             reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}`;
@@ -391,7 +380,7 @@ async function updateUI() {
                 </div>
                 <div style="color: var(--text-muted); font-size: 13px; margin: 2px 0;">${item.name}</div>
                 <div class="info-links-bar">
-                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介</a>
+                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介网址</a>
                     <a href="${reportUrl}" target="_blank" class="action-btn-link">${reportLabel}</a>
                 </div>
             </td>
@@ -482,6 +471,10 @@ function selectFinancialCompany(ticker) {
     if (data.market === "美股") {
         reportLinkEl.href = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${ticker}`;
         reportLinkEl.innerText = "📄 检索 SEC 官方财务报表";
+    } else if (data.market === "港股") {
+        const formattedHK = ticker.padStart(5, '0');
+        reportLinkEl.href = `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&category=0&market=sehk&stockCode=${formattedHK}`;
+        reportLinkEl.innerText = "📄 检索 HKEX 官方披露";
     } else {
         reportLinkEl.href = `http://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&searchkey=${ticker}`;
         reportLinkEl.innerText = "📄 检索巨潮权威公告";
@@ -521,36 +514,7 @@ function renderFinancialTrendChart(labels, values, ticker) {
     });
 }
 
-function savePosition() {
-    const code = document.getElementById('secCode').value.trim().toUpperCase();
-    const name = document.getElementById('secName').value.trim();
-    const account = document.getElementById('secAccount').value.toUpperCase().trim();
-    const category = document.getElementById('secCategory').value;
-    const quantity = parseFloat(document.getElementById('secQuantity').value);
-    const cost = document.getElementById('secCost').value;
-
-    if (!code || !name || isNaN(quantity) || !cost) { alert('请完整填写表单数据！'); return; }
-    const btn = document.querySelector('.modal-footer .btn-primary');
-    btn.innerText = '正在上传数据...'; btn.disabled = true;
-
-    const newAsset = { code, name, currentPrice: "", account, category, quantity, cost: parseFloat(cost) };
-    fetch(GOOGLE_API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify(newAsset) })
-    .then(res => res.json())
-    .then(result => {
-        if (result.status === "success") { alert(`【同步成功】资产 ${code} 已成功同步至云端！`); closeModal(); loadPortfolioFromGoogleSheet(); }
-        else { alert('同步故障: ' + result.message); }
-    })
-    .catch(err => { alert('谷歌服务脚本响应异常！'); })
-    .finally(() => { btn.innerText = '同步至云端表格'; btn.disabled = false; });
-}
-
 setInterval(updateUI, 60000);
-function openModal() { document.getElementById('editModal').style.display = 'block'; }
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-    document.getElementById('secCode').value = ''; document.getElementById('secName').value = '';
-    document.getElementById('secQuantity').value = ''; document.getElementById('secCost').value = '';
-}
 </script>
 </body>
 </html>
