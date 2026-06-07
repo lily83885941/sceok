@@ -523,7 +523,7 @@ function selectFinancialCompany(ticker) {
     const reportLinkEl = document.getElementById('secReportLink');
     if (data.market === "美股") {
         const mappedCik = SEC_CIK_MAP[ticker] || ticker;
-        reportLinkEl.href = `https://www.sec.gov/edgar/browse/?CIK=${mappedCik}`;
+        reportLinkEl.href = `https://www.sec.gov/edgar/search/`;
         reportLinkEl.innerText = "📄 检索 SEC 官方财务报表";
     } else if (data.market === "港股") {
         const formattedHK = ticker.padStart(5, '0');
