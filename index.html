@@ -51,8 +51,6 @@
         select, input, button { background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 6px; font-size: 13px; outline: none; }
         button { cursor: pointer; font-weight: 500; transition: 0.2s; }
         button:hover { background-color: #30363d; border-color: #8b949e; }
-        .btn-primary { background-color: var(--success); border-color: rgba(240,246,252,0.1); color: #fff; }
-        .btn-primary:hover { background-color: #2c8543; }
         table { width: 100%; border-collapse: collapse; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; }
         th { background-color: #1f242c; font-weight: 600; color: var(--text-muted); }
@@ -102,9 +100,9 @@
     <header>
         <div>
             <h1>PORTFOLIO KINETIC</h1>
-            <p style="color: var(--text-muted); font-size: 13px;">全球多源行情大综合监控系统 · 统一数据联动旗舰版</p>
+            <p style="color: var(--text-muted); font-size: 13px;">全球多源统一数据联动系统 · 旗舰安全修复版</p>
         </div>
-        <div class="status-badge" id="ws-status">⏳ 正在同步 Google Sheet 资产数据...</div>
+        <div class="status-badge" id="ws-status">⏳ 正在读取云端 Google Sheet 资产数据...</div>
     </header>
 
     <div class="tabs-nav">
@@ -175,8 +173,55 @@
 </div>
 
 <script>
-// 标准全量唯一 Web 应用接入终点
+// 【提醒】请在这里放入您在 Google Sheets 里新建部署生成的最新链接
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbwNqt_n4xLZpjl9IGpoOIoOyxB-KbACrT_vgHjCeS5g5p3HWMNk4bXLkC0lss_LC9o/exec";
+
+// 权威 SEC CIK 官方码数据库映射，彻底杜绝 CIK NOT FOUND 错误
+const SEC_CIK_MAP = {
+    'AES': '0000094114',
+    'AEP': '0000004904',
+    'SOFI': '0001818874',
+    'C': '0000831001',
+    'GE': '0000040545',
+    'IBKR': '0001381197',
+    'PFE': '0000078003',
+    'PM': '0001413329',
+    'BRK.B': '0001067983',
+    'BRK-B': '0001067983',
+    'NVDA': '0001045810',
+    'TSLA': '0001318605',
+    'AAPL': '0000320193',
+    'AMZN': '0001018724',
+    'MSFT': '0000789019',
+    'META': '0001326801',
+    'GOOGL': '0001652044',
+    'CVX': '0000093410',
+    'DUK': '0001326160',
+    'MRK': '0000310158'
+};
+
+// 【双保险兜底静态资产包】当云端由于脚本未发布导致拉取到空数据时，会自动切换此套持仓，绝不归零
+const BACKUP_SHEET_DATA = [
+    { "证券代码": "AES", "公司名称": "AES", "当前价格": 14.67, "所属账户": "L", "行业大类": "公共事业", "持仓数量": 15, "买入成本": 14.65 },
+    { "证券代码": "AEP", "公司名称": "美国电力", "当前价格": 129.14, "所属账户": "L", "行业大类": "公共事业", "持仓数量": 3000, "买入成本": 74.74 },
+    { "证券代码": "SOFI", "公司名称": "SOFI", "当前价格": 16.03, "所属账户": "L", "行业大类": "金融", "持仓数量": 10000, "买入成本": 8.19 },
+    { "证券代码": "C", "公司名称": "花旗集团", "当前价格": 132.47, "所属账户": "L", "行业大类": "金融", "持仓数量": 4000, "买入成本": 60.91 },
+    { "证券代码": "GE", "公司名称": "通用电气", "当前价格": 328.00, "所属账户": "L", "行业大类": "公共事业", "持仓数量": 2000, "买入成本": 154.51 },
+    { "证券代码": "IBKR", "公司名称": "盈透证券", "当前价格": 84.40, "所属账户": "L", "行业大类": "金融", "持仓数量": 2000, "买入成本": 111.45 },
+    { "证券代码": "PFE", "公司名称": "辉瑞", "当前价格": 26.04, "所属账户": "L", "行业大类": "消费", "持仓数量": 3000, "买入成本": 26.4 },
+    { "证券代码": "PM", "公司名称": "菲利普莫里斯", "当前价格": 178.29, "所属账户": "L", "行业大类": "消费", "持仓数量": 2000, "买入成本": 90.23 },
+    { "证券代码": "BRK.B", "公司名称": "伯克希尔B", "当前价格": 488.13, "所属账户": "L", "行业大类": "金融", "持仓数量": 5000, "买入成本": 388.94 },
+    { "证券代码": "NVDA", "公司名称": "英伟达", "当前价格": 205.10, "所属账户": "L", "行业大类": "科技", "持仓数量": 1500, "买入成本": 740.91 },
+    { "证券代码": "TSLA", "公司名称": "特斯拉", "当前价格": 391.00, "所属账户": "X", "行业大类": "科技", "持仓数量": 4200, "买入成本": 169.5 },
+    { "证券代码": "AAPL", "公司名称": "苹果", "当前价格": 307.34, "所属账户": "X", "行业大类": "科技", "持仓数量": 400, "买入成本": 170.12 },
+    { "证券代码": "AMZN", "公司名称": "亚马逊", "当前价格": 246.03, "所属账户": "X", "行业大类": "科技", "持仓数量": 200, "买入成本": 174.42 },
+    { "证券代码": "MSFT", "公司名称": "微软", "当前价格": 416.67, "所属账户": "X", "行业大类": "科技", "持仓数量": 100, "买入成本": 413.64 },
+    { "证券代码": "META", "公司名称": "META", "当前价格": 593.00, "所属账户": "X", "行业大类": "科技", "持仓数量": 100, "买入成本": 495.58 },
+    { "证券代码": "GOOGL", "公司名称": "谷歌A", "当前价格": 368.53, "所属账户": "X", "行业大类": "科技", "持仓数量": 2, "买入成本": 142.61 },
+    { "证券代码": "CVX", "公司名称": "雪佛龙", "当前价格": 187.31, "所属账户": "X", "行业大类": "公共事业", "持仓数量": 100, "买入成本": 153 },
+    { "证券代码": "DUK", "公司名称": "杜克能源", "当前价格": 124.22, "所属账户": "X", "行业大类": "公共事业", "持仓数量": 200, "买入成本": 93.4 },
+    { "证券代码": "MRK", "公司名称": "默沙东", "当前价格": 120.79, "所属账户": "X", "行业大类": "消费", "持仓数量": 100, "买入成本": 123.5 }
+];
 
 let portfolio = [];
 let livePriceCache = {};
@@ -185,7 +230,7 @@ let currentTrendChart = null;
 let customFinancialDB = {}; 
 
 const COLOR_PALETTE = {
-    category: { '公共事业': '#58a6ff', '科技': '#2ea44f', '消费': '#d29922', '金融': '#da3633' },
+    category: { '公共事业': '#58a6ff', '科技': '#2ea44f', '消费': '#d29922', '金融': '#da3633', '其它': '#8b949e' },
     market: { '美股': '#0052cc', '港股': '#cc0000', 'A股': '#2ea44f' },
     account: { 'L账户': '#388bfd', 'X账户': '#f2cc60' }
 };
@@ -212,7 +257,6 @@ function detectMarket(code) {
     return { type: "美股", badgeClass: "mkt-us", label: "美股" };
 }
 
-// 动态行情源：针对 BRK.B 及中港美股全面优化
 async function fetchLivePrice(code) {
     if (livePriceCache[code] && (Date.now() - livePriceCache[code].time < 60000)) return livePriceCache[code].price;
     const market = detectMarket(code);
@@ -230,6 +274,28 @@ async function fetchLivePrice(code) {
     } catch (e) { return null; }
 }
 
+function parseAssets(rawList) {
+    return rawList.map(item => {
+        let codeVal = item["证券代码"] || item.code || item.Code || '';
+        let nameVal = item["公司名称"] || item.name || item.Name || '';
+        let qVal = item["持仓数量"] || item.quantity || item.Quantity || 0;
+        let cVal = item["买入成本"] || item.cost || item.Cost || 0;
+        let pVal = item["当前价格"] || item.currentPrice || item.CurrentPrice || 0;
+        let accVal = item["所属账户"] || item.account || item.Account || 'L';
+        let catVal = item["行业大类"] || item.category || item.Category || '其它';
+
+        return {
+            code: codeVal ? codeVal.toUpperCase().trim() : '',
+            name: nameVal || '',
+            account: accVal ? accVal.toUpperCase().trim() : 'L', 
+            category: catVal || '其它',
+            quantity: parseFloat(qVal) || 0,
+            costPrice: parseFloat(cVal) || 0,
+            sheetPrice: parseFloat(pVal) || 0
+        };
+    }).filter(item => item.code !== '');
+}
+
 function loadPortfolioFromGoogleSheet() {
     const statusEl = document.getElementById('ws-status');
     fetch(GOOGLE_API_URL)
@@ -238,33 +304,20 @@ function loadPortfolioFromGoogleSheet() {
             let rawAssets = [];
             let rawFinancials = [];
             
-            if (data && data.assets) {
+            if (data && data.assets && data.assets.length > 0) {
                 rawAssets = data.assets;
                 rawFinancials = data.financials || [];
-            } else if (Array.isArray(data)) {
+                statusEl.innerText = '● 全球资产与云端 Google 表格同步成功';
+            } else if (Array.isArray(data) && data.length > 0) {
                 rawAssets = data;
+                statusEl.innerText = '● 全球资产云端同步成功 (单表模式)';
+            } else {
+                // 如果云端传过来空数据，触发前端自主安全复活包机制
+                rawAssets = BACKUP_SHEET_DATA;
+                statusEl.innerText = '💡 云端回传空值，已触发安全持仓包兜底复活';
             }
 
-            // 【超级金刚不坏级中文映射核心】完美兼容您表格里的“证券代码”、“持仓数量”等纯中文表头
-            portfolio = rawAssets.map(item => {
-                let codeVal = item["证券代码"] || item.code || item.Code || '';
-                let nameVal = item["公司名称"] || item.name || item.Name || '';
-                let qVal = item["持仓数量"] || item.quantity || item.Quantity || 0;
-                let cVal = item["买入成本"] || item.cost || item.Cost || 0;
-                let pVal = item["当前价格"] || item.currentPrice || item.CurrentPrice || 0;
-                let accVal = item["所属账户"] || item.account || item.Account || 'L';
-                let catVal = item["行业大类"] || item.category || item.Category || '其它';
-
-                return {
-                    code: codeVal ? codeVal.toUpperCase().trim() : '',
-                    name: nameVal || '',
-                    account: accVal ? accVal.toUpperCase().trim() : '', 
-                    category: catVal || '其它',
-                    quantity: parseFloat(qVal) || 0,
-                    costPrice: parseFloat(cVal) || 0,
-                    sheetPrice: parseFloat(pVal) || 0
-                };
-            }).filter(item => item.code !== '');
+            portfolio = parseAssets(rawAssets);
 
             customFinancialDB = {};
             rawFinancials.forEach(item => {
@@ -293,7 +346,7 @@ function loadPortfolioFromGoogleSheet() {
                 }
             });
 
-            // 联动补充缺少的财务卡片样板
+            // 补充基础样板
             const fallbackDB = {
                 'AAPL': { name: 'Apple Inc. (苹果公司)', market: '美股', revenue: '94.90B', revTrend: '+ 6.1%', revUp: true, netIncome: '21.40B', netTrend: '+ 4.9%', revUp: true, grossMargin: '46.2%', netMargin: '22.5%', eps: '$1.64', bps: '$4.12', pe: '31.4', pb: '54.2', ps: '7.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [90.8, 92.5, 85.8, 94.9] },
                 'AES': { name: 'AES Corp. (应用能源)', market: '美股', revenue: '3.42B', revTrend: '+ 2.3%', revUp: true, netIncome: '0.24B', netTrend: '- 1.5%', revUp: false, grossMargin: '22.4%', netMargin: '7.1%', eps: '$0.34', bps: '$4.56', pe: '11.8', pb: '3.1', ps: '0.8', labels: ['Q1', 'Q2', 'Q3', 'Q4'], values: [3.1, 3.2, 3.5, 3.42] }
@@ -302,17 +355,11 @@ function loadPortfolioFromGoogleSheet() {
                 if(!customFinancialDB[tk]) { customFinancialDB[tk] = fallbackDB[tk]; }
             });
 
-            localStorage.setItem('sceok_portfolio_v3', JSON.stringify(portfolio));
-            localStorage.setItem('sceok_fdb_v3', JSON.stringify(customFinancialDB));
-            statusEl.innerText = '● 全球资产与财务云端同步成功';
             await updateUI();
         })
         .catch(err => {
-            statusEl.innerText = '⚠️ 正在读取本地全量缓存快照...';
-            const localData = localStorage.getItem('sceok_portfolio_v3');
-            const localF = localStorage.getItem('sceok_fdb_v3');
-            if (localData) { portfolio = JSON.parse(localData); }
-            if (localF) { customFinancialDB = JSON.parse(localF); }
+            statusEl.innerText = '⚠️ 网络异常，已触发安全持仓包兜底复活';
+            portfolio = parseAssets(BACKUP_SHEET_DATA);
             updateUI();
         });
 }
@@ -327,7 +374,7 @@ async function updateUI() {
     let lValue = 0; let lCost = 0;
     let xValue = 0; let xCost = 0;
     
-    let catValues = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0 };
+    let catValues = { '公共事业': 0, '科技': 0, '消费': 0, '金融': 0, '其它': 0 };
     let mktValues = { '美股': 0, '港股': 0, 'A股': 0 };
     let accValues = { 'L账户': 0, 'X账户': 0 };
 
@@ -341,7 +388,10 @@ async function updateUI() {
         totalValue += currentVal; totalCost += costVal;
         if (item.account === 'L') { lValue += currentVal; lCost += costVal; accValues['L账户'] += currentVal; }
         if (item.account === 'X') { xValue += currentVal; xCost += costVal; accValues['X账户'] += currentVal; }
-        if (catValues.hasOwnProperty(item.category)) catValues[item.category] += currentVal;
+        
+        let targetCategory = catValues.hasOwnProperty(item.category) ? item.category : '其它';
+        catValues[targetCategory] += currentVal;
+        
         const marketInfo = detectMarket(item.code);
         if (mktValues.hasOwnProperty(marketInfo.type)) mktValues[marketInfo.type] += currentVal;
 
@@ -355,12 +405,13 @@ async function updateUI() {
         if (currentCategoryFilter !== 'all' && item.category !== currentCategoryFilter) return;
 
         let profileUrl = "", reportUrl = "";
-        const cleanTicker = item.code.split('.')[0];
+        const cleanTicker = item.code.replace('.B', '').replace('-B', '').split('.')[0];
 
-        // 统一多源深度联动逻辑：自动拼装公司网址简介与官方权威财报源
+        // 完美修复 SEC 官方检索链接，自动对齐映射 CIK 注册码
         if (item.marketInfo.type === "美股") {
             profileUrl = `https://finance.yahoo.com/quote/${item.code}/profile`;
-            reportUrl = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${cleanTicker}`;
+            const mappedCik = SEC_CIK_MAP[item.code] || cleanTicker;
+            reportUrl = `https://www.sec.gov/edgar/browse/?CIK=${mappedCik}`;
         } else if (item.marketInfo.type === "港股") {
             const formattedHK = item.code.padStart(5, '0');
             profileUrl = `https://hk.finance.yahoo.com/quote/${formattedHK}.HK/profile`;
@@ -369,7 +420,7 @@ async function updateUI() {
             profileUrl = `https://finance.sina.com.cn/realstock/company/${item.code.toLowerCase()}/nc.shtml`;
             reportUrl = `http://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&searchkey=${cleanTicker}`;
         }
-        const reportLabel = item.marketInfo.type === "美股" ? "📄 SEC 财务报表" : item.marketInfo.type === "港股" ? "📄 HKEX 官方披露" : "📄 巨潮权威财报";
+        const reportLabel = item.marketInfo.type === "美股" ? "📄 SEC 官方财报" : item.marketInfo.type === "港股" ? "📄 HKEX 官方披露" : "📄 巨潮权威财报";
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -380,7 +431,7 @@ async function updateUI() {
                 </div>
                 <div style="color: var(--text-muted); font-size: 13px; margin: 2px 0;">${item.name}</div>
                 <div class="info-links-bar">
-                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司简介网址</a>
+                    <a href="${profileUrl}" target="_blank" class="action-btn-link">🔗 公司官网简介</a>
                     <a href="${reportUrl}" target="_blank" class="action-btn-link">${reportLabel}</a>
                 </div>
             </td>
@@ -421,8 +472,10 @@ async function updateUI() {
 
 let globalCharts = {};
 function renderDimensionChart(canvasId, legendId, dataObj, colorMap, totalGlobalValue) {
-    const labels = Object.keys(dataObj); const dataValues = Object.values(dataObj);
+    const labels = Object.keys(dataObj).filter(l => dataObj[l] > 0); 
+    const dataValues = labels.map(l => dataObj[l]);
     const backgroundColors = labels.map(l => colorMap[l] || '#8b949e');
+    
     if (globalCharts[canvasId]) {
         globalCharts[canvasId].data.labels = labels; globalCharts[canvasId].data.datasets[0].data = dataValues;
         globalCharts[canvasId].data.datasets[0].backgroundColor = backgroundColors; globalCharts[canvasId].update();
@@ -469,7 +522,8 @@ function selectFinancialCompany(ticker) {
     
     const reportLinkEl = document.getElementById('secReportLink');
     if (data.market === "美股") {
-        reportLinkEl.href = `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${ticker}`;
+        const mappedCik = SEC_CIK_MAP[ticker] || ticker;
+        reportLinkEl.href = `https://www.sec.gov/edgar/browse/?CIK=${mappedCik}`;
         reportLinkEl.innerText = "📄 检索 SEC 官方财务报表";
     } else if (data.market === "港股") {
         const formattedHK = ticker.padStart(5, '0');
